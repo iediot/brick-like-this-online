@@ -23,9 +23,20 @@ const ICON_BOX = { w: 80, h: 42 };
 export function Inventory({
   state,
   onChange,
+  locked,
+  onRestart,
 }: {
   state: InventoryState;
   onChange: (s: InventoryState) => void;
+  /**
+   * Fixed for the length of a game, the same way the teams are. Cards are dealt
+   * from what you own, so changing what you own mid-game would change what the
+   * models already on the table were built to be possible from. Restarting is
+   * the way out of both.
+   */
+  locked?: boolean;
+  /** Clears the teams and the scores, which is what unlocks this board. */
+  onRestart?: () => Promise<void>;
 }) {
   const [counts, setCounts] = useState<Map<string, number>>(
     () => new Map(state.entries.map((e) => [e.pieceId, e.count])),
@@ -33,6 +44,7 @@ export function Inventory({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [justScanned, setScanned] = useState(false);
+  const [confirmRestart, setConfirmRestart] = useState(false);
 
   const saved = useMemo(
     () => new Map(state.entries.map((e) => [e.pieceId, e.count])),
@@ -75,7 +87,7 @@ export function Inventory({
   const total = [...counts.values()].reduce((a, b) => a + b, 0);
 
   return (
-    <div className="panel">
+    <div className="panel board">
       {justScanned ? (
         <p className="muted scanned-note">Scanned — check the numbers before saving.</p>
       ) : null}
@@ -90,6 +102,7 @@ export function Inventory({
                   key={piece.id}
                   piece={piece}
                   count={counts.get(piece.id) ?? 0}
+                  locked={locked}
                   onSet={(n) => set(piece.id, n)}
                 />
               ))}
@@ -99,15 +112,41 @@ export function Inventory({
       </div>
 
       <div className="save-bar">
-        <span className="muted">{total} pieces</span>
+        <span className="muted">
+          {confirmRestart
+            ? 'This clears the teams and the scores.'
+            : locked
+              ? `${total} pieces · locked for this game`
+              : `${total} pieces`}
+        </span>
         <div className="save-actions">
-          <PileScanner
-            onResult={(scanned) => {
-              setCounts(new Map(scanned.map((e) => [e.pieceId, e.count])));
-              setScanned(true);
-            }}
-          />
-          <button className="primary" onClick={() => void save()} disabled={!dirty || saving}>
+          {/* The way out of the lock, without having to go and find the teams
+              screen to do it. */}
+          {locked && onRestart ? (
+            confirmRestart ? (
+              <>
+                <button className="danger" onClick={() => void onRestart()}>
+                  Yes, restart
+                </button>
+                <button onClick={() => setConfirmRestart(false)}>Cancel</button>
+              </>
+            ) : (
+              <button onClick={() => setConfirmRestart(true)}>Restart game</button>
+            )
+          ) : null}
+          {locked ? null : (
+            <PileScanner
+              onResult={(scanned) => {
+                setCounts(new Map(scanned.map((e) => [e.pieceId, e.count])));
+                setScanned(true);
+              }}
+            />
+          )}
+          <button
+            className="primary"
+            onClick={() => void save()}
+            disabled={locked || !dirty || saving}
+          >
             {saving ? 'Saving…' : dirty ? 'Save' : 'Saved'}
           </button>
         </div>
@@ -123,10 +162,12 @@ function PieceTile({
   piece,
   count,
   onSet,
+  locked,
 }: {
   piece: PieceType;
   count: number;
   onSet: (n: number) => void;
+  locked?: boolean;
 }) {
   // Centred in the shared grid rather than parked at its bottom-left corner.
   const placed: PlacedPiece = {
@@ -146,17 +187,22 @@ function PieceTile({
         <path d={piecePath(placed, [placed], l)} />
       </svg>
       <div className="stepper">
-        <button onClick={() => onSet(count - 1)} disabled={count === 0} aria-label="One fewer">
+        <button
+          onClick={() => onSet(count - 1)}
+          disabled={locked || count === 0}
+          aria-label="One fewer"
+        >
           −
         </button>
         <input
           type="number"
           min={0}
           value={count}
+          disabled={locked}
           aria-label={piece.label}
           onChange={(e) => onSet(Math.max(0, Number(e.target.value)))}
         />
-        <button onClick={() => onSet(count + 1)} aria-label="One more">
+        <button onClick={() => onSet(count + 1)} disabled={locked} aria-label="One more">
           +
         </button>
       </div>

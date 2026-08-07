@@ -2,6 +2,18 @@
   /* Pile cards and the drawn card are the same size, so choosing a pile and
      seeing the model happen at the same scale. */
   --card-w: 112px;
+  /* The window's own inset, referred to by anything that has to reach its
+     edge. */
+  --panel-pad: 18px;
+  /*
+   * How tall every window is. Stated rather than inherited from the column
+   * above, so it is the same box whichever screen is in it — and never taller
+   * than what is on screen, so anything longer scrolls inside itself instead of
+   * running off the bottom. `dvh` rather than `vh` because a phone's address
+   * bar counts towards the height and comes and goes.
+   */
+  --panel-h: min(560px, calc(100dvh - 178px));
+
   /* Taken from the logo: navy ink, magenta, teal, yellow, orange. */
   --bg: #fdf8ec;
   /* Windows are yellow with a white border, like the rulebook's own panels. */
@@ -45,9 +57,33 @@ html {
   height: 100%;
 }
 
+/*
+ * A column the height of the window: bar at the top, the rest for the screen.
+ *
+ * The window used to be sized by subtracting a guess at everything above it
+ * from the viewport, which meant the gap under the top bar was whatever that
+ * guess happened to be wrong by. Letting it take what is left instead makes the
+ * space above and below it exactly the padding, and nothing else.
+ */
 body {
   overscroll-behavior: none;
-  min-height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+/*
+ * Everything the app draws lives in here, and this is where sideways overflow
+ * is cut off.
+ *
+ * `html` already asks for the same thing, but overflow on the root element is
+ * handed to the viewport rather than applied to the element, and Safari does
+ * not honour `clip` there — so a screen travelling off the side still left the
+ * page draggable a few pixels sideways, everything moving except the fixed
+ * pattern behind it. On an ordinary element it simply clips.
+ */
+#root {
+  overflow-x: clip;
 }
 
 body {
@@ -86,7 +122,12 @@ body {
 .app {
   max-width: 560px;
   margin: 0 auto;
-  padding: 20px 14px 48px;
+  /* The same above as below, and the only thing between the bar and the box. */
+  padding: 14px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Spans the window rather than the centred column, so the logo reaches the
@@ -153,16 +194,31 @@ nav button:active:not(:disabled) {
   background: var(--panel);
   border: 5px solid #fff;
   border-radius: 22px;
-  padding: 18px;
+  padding: var(--panel-pad);
   box-shadow: 0 6px 0 rgb(35 57 94 / 0.22);
   position: relative;
   /* Keeps repaints inside the panel instead of cascading across the page. */
   contain: layout style;
-  /* Both screens stand the same height, so switching tabs does not resize the
-     page under you. The pieces board grows past this; play fills it. */
-  min-height: 380px;
+  height: var(--panel-h);
+  min-height: 0;
   display: flex;
   flex-direction: column;
+  /*
+   * Both axes named. Setting only one leaves the other at `visible`, which is
+   * not allowed alongside a scrolling value and computes to `auto` instead — so
+   * the window quietly became draggable sideways by however many sub-pixels
+   * anything inside it happened to overrun by.
+   */
+  overflow-x: clip;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  /* No track down the side: the window has an edge of its own and a bar inside
+     it reads as part of the drawing. */
+  scrollbar-width: none;
+}
+
+.panel::-webkit-scrollbar {
+  display: none;
 }
 
 /* Play has less in it, so its contents sit centred in the taller panel. */
@@ -393,23 +449,36 @@ button.ghost {
 }
 
 /* Result */
+/* The result stands where the team stood: same column, same width, so nothing
+   around it moves when one replaces the other. */
+.result-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+}
+
+/* Sized to the column it shares with the sand rather than to the panel: it
+   sits in the same place the team did, which is not a wide place. */
 .result-points {
-  font-size: 52px;
+  font-size: 40px;
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 
 .result-points span {
-  font-size: 20px;
+  font-size: 16px;
   color: var(--muted);
   font-weight: 400;
 }
 
 .verdict {
   margin: 0;
-  font-size: 15px;
-  max-width: 34ch;
+  font-size: 13px;
+  line-height: 1.4;
+  max-width: 24ch;
+  text-align: center;
 }
 
 /* The photo fills the card's slot exactly, because it is a photo of the card's
@@ -426,8 +495,9 @@ button.ghost {
 
 .metrics {
   display: flex;
-  gap: 28px;
+  gap: 18px;
   margin: 0;
+  text-align: center;
 }
 
 .metrics dt {
@@ -511,6 +581,7 @@ button.ghost {
   width: var(--card-w);
   aspect-ratio: 63 / 88;
   flex: none;
+  transform: translateZ(0);
   /* Depth for the turn. Without it the card squashes instead of rotating. */
   perspective: 1100px;
 }
@@ -638,7 +709,6 @@ button.ghost {
 }
 
 
-
 /* The back of a pile card carries only the number and its points, so both are
    sized to be read across a table. */
 .numeral {
@@ -738,6 +808,23 @@ button.ghost {
 
 .small {
   font-size: 12px;
+}
+
+/*
+ * The save bar reaches the bottom edge of the window rather than stopping short
+ * of it. It is pinned to the bottom of the scrolling area, but the window's own
+ * padding sits below that — and a scroll container scrolls its padding too, so
+ * pieces slid through the strip between the bar and the rounded corner. Giving
+ * the bar that padding instead puts the two flush.
+ */
+.panel.board,
+.panel.teams {
+  padding-bottom: 0;
+}
+
+.panel.board .save-bar,
+.panel.teams .save-bar {
+  padding-bottom: var(--panel-pad);
 }
 
 /* ---- Inventory board ---- */
@@ -971,14 +1058,18 @@ button.ghost {
 }
 
 @media (min-width: 900px) {
-  .panel {
-    min-height: max(440px, calc(var(--card-w) * 88 / 63 + 120px));
+
+
+  :root {
+    --panel-h: max(460px, calc(100dvh - 200px));
   }
 
   .app {
     /* Fills the window, keeping a margin so panels do not touch the edges. */
     max-width: min(1500px, 88vw);
-    padding: 26px 0 52px;
+    /* Tight to the bar. The window's height is capped, so what comes off the
+       top lands at the bottom rather than being lost. */
+    padding: 6px 0 0;
   }
 
   .topbar {
@@ -989,8 +1080,8 @@ button.ghost {
     width: 158px;
   }
 
-  .panel {
-    padding: 28px;
+  :root {
+    --panel-pad: 28px;
   }
 
   /* Room between the pile and the card it dealt. */
@@ -1038,7 +1129,6 @@ button.ghost {
   .stage-side .actions {
     justify-content: center;
   }
-
 
 
   .viewport {
@@ -1304,13 +1394,21 @@ button.ghost {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 10px;
-  padding: 15px 14px;
+  gap: 8px;
+  padding: 8px 10px;
   /* Same treatment as the windows: yellow face, white edge. */
   background: var(--panel);
-  border: 4px solid #fff;
-  border-radius: 18px;
-  box-shadow: 0 4px 0 rgb(35 57 94 / 0.18);
+  border: 3px solid #fff;
+  border-radius: 15px;
+  box-shadow: 0 3px 0 rgb(35 57 94 / 0.18);
+  min-width: 0;
+}
+
+.team-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -1321,32 +1419,46 @@ button.ghost {
 
 /* Each team is its own yellow window, and the strip is a larger yellow window
    holding them all. The white outlines are what separate them. */
+/* The name across the top, the pair side by side underneath — sprite over
+   name, so a team reads as two people rather than as a list. */
 .team-chip {
   display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  line-height: 1.25;
-  gap: 5px;
-  padding: 9px 13px;
+  flex-flow: row wrap;
+  align-items: flex-start;
+  line-height: 1.2;
+  gap: 3px 8px;
+  padding: 6px 9px;
   min-width: 0;
   background: var(--panel);
-  border: 3px solid #fff;
-  border-radius: 14px;
+  border: 2px solid #fff;
+  border-radius: 11px;
+}
+
+.team-chip b {
+  flex: 0 0 100%;
+}
+
+.team-chip .player {
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
 }
 
 /* The team's colour is the rule under its name, dividing the team from its
    players — which is what the colour is for, so it need not also be a border
    down the side. */
 .team-chip b {
-  font-size: 17px;
+  font-size: 14px;
   color: var(--team);
-  padding-bottom: 6px;
-  border-bottom: 3px dotted var(--team);
+  padding-bottom: 4px;
+  border-bottom: 2px dotted var(--team);
 }
 
 .team-chip em {
   font-style: normal;
-  font-size: 14px;
+  font-size: 12px;
+  text-align: center;
   color: var(--muted);
   white-space: nowrap;
   overflow: hidden;
@@ -1355,17 +1467,7 @@ button.ghost {
 }
 
 /* On a phone the bar has no room for three blocks side by side. */
-@media (max-width: 860px) {
-  .topbar {
-    flex-wrap: wrap;
-  }
 
-  .team-strip {
-    order: 3;
-    width: 100%;
-    justify-content: center;
-  }
-}
 
 /* ---- Turn, roles and scores ---- */
 
@@ -1378,15 +1480,31 @@ button.ghost {
   padding: 0;
   font-size: 20px;
   line-height: 1;
-  z-index: 2;
+  /* Above the pile, which starts in the same corner of the window. */
+  z-index: 5;
+  opacity: 1;
+  /*
+   * Fades in when it appears, which is once the card has landed. Deliberately
+   * no fill mode: without one the arrow is fully drawn whenever the animation
+   * is not running, so it can never be left invisible the way it was when this
+   * was a class that could stick.
+   */
+  animation: fade-in 220ms ease-out;
+}
+
+/* Pressed: it leaves with the card rather than sitting there until the piles
+   are back. Unreachable while it goes, so there is no invisible hitbox. */
+.back-arrow.going {
+  animation: fade-away 200ms ease-out both;
+  pointer-events: none;
 }
 
 /* Role icons: the telescope for the one who describes, the brick and hand for
    the one who builds. */
 .player img,
 .turn-role img {
-  width: 22px;
-  height: 22px;
+  width: 17px;
+  height: 17px;
   flex: none;
   display: block;
 }
@@ -1470,7 +1588,7 @@ button.ghost {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 6px;
   /* Both sides hug their glyphs. With the chip's 1.25 line-height the digits
      carry descender space below them, which centred the box but left the
      number sitting visibly low against the name. */
@@ -1480,13 +1598,13 @@ button.ghost {
 .team-score {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 4px;
   padding-left: 14px;
   align-self: stretch;
   position: relative;
   /* Matches the team name's weight and size, so the two sides of the rule read
      as a pair rather than a label and a footnote. */
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   line-height: 1;
@@ -1506,9 +1624,10 @@ button.ghost {
   top: 50%;
   transform: translateY(-50%);
   width: 3px;
-  height: 26px;
+  /* Three tiles exactly: any other height ends on a part-drawn dot. */
+  height: 18px;
   background-image: radial-gradient(circle, var(--team) 45%, transparent 50%);
-  background-size: 3px 7px;
+  background-size: 3px 6px;
   background-repeat: repeat-y;
 }
 
@@ -1558,8 +1677,8 @@ button.ghost {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
-  padding: 0 14px 0 6px;
+  gap: 3px;
+  padding: 0 9px 0 4px;
   align-self: center;
   justify-content: center;
 }
@@ -1574,7 +1693,7 @@ button.ghost {
 }
 
 .round-badge b {
-  font-size: 24px;
+  font-size: 18px;
   font-weight: 900;
   line-height: 1;
   color: var(--ink);
@@ -1648,7 +1767,7 @@ button.ghost {
 
 /* No measurement was possible, so there is no number to show. */
 .result-empty {
-  font-size: 52px;
+  font-size: 40px;
   font-weight: 700;
   line-height: 1;
   color: var(--muted);
@@ -1695,10 +1814,16 @@ button.danger {
   flex: none;
 }
 
+/* The role reads as a caption to the name, so the two are centred on each
+   other — and the pair takes the rest of the row, so it sits in the middle of
+   the space beside the icon rather than starting hard against it. */
 .role span {
   display: flex;
   flex-direction: column;
+  align-items: center;
+  text-align: center;
   gap: 2px;
+  flex: 1;
   min-width: 0;
 }
 
@@ -1710,7 +1835,8 @@ button.danger {
   white-space: nowrap;
 }
 
-/* The role is the point of the block, so it gets the heading colour. */
+/* The role is the point of the block, so it gets a heading colour — one each,
+   so which job is which reads at a glance rather than by reading the word. */
 .role em {
   font-style: normal;
   font-size: 13px;
@@ -1718,6 +1844,10 @@ button.danger {
   letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--pink);
+}
+
+.role.role-instructor em {
+  color: var(--text);
 }
 
 /* ---- Moving between screens ---- */
@@ -1736,10 +1866,15 @@ button.danger {
   padding: 14px;
   margin: -14px;
   clip-path: inset(0 -100vw -100vh -100vw);
+  /* Takes the rest of the column, and the screens inside it take all of that. */
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .slide {
   min-width: 0;
+  height: 100%;
+  transform: translateZ(0);
 }
 
 /* The screen on its way out floats over the one arriving, so the container is
@@ -1750,6 +1885,7 @@ button.danger {
   top: 14px;
   left: 14px;
   right: 14px;
+  bottom: 14px;
 }
 
 .slide[class*='leaving'] {
@@ -2031,13 +2167,11 @@ button.danger {
   visibility: hidden;
 }
 
-.stage.dealing .stage-side,
-.stage.dealing .back-arrow {
+.stage.dealing .stage-side {
   animation: fade-up 420ms 140ms ease-out both;
 }
 
-.stage.undealing .stage-side,
-.stage.undealing .back-arrow {
+.stage.undealing .stage-side {
   animation: fade-away 240ms ease-in both;
 }
 
@@ -2111,4 +2245,368 @@ nav button.on {
    take is held anyway. */
 .timer b.waiting {
   visibility: hidden;
+}
+
+/*
+ * Narrow screens, last in the file on purpose.
+ *
+ * A media query adds nothing to specificity, so one of these only beats a
+ * plain rule by coming after it. Sitting in the middle of the sheet they were
+ * quietly losing to every base rule declared below them — which is why the
+ * round and the score stayed full size however small they were set here.
+ */
+
+@media (max-width: 860px) {
+  .topbar {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  /* Logo and teams share the first line; the tabs take the second, centred. */
+  .team-strip {
+    order: 2;
+    flex: 1;
+    min-width: 0;
+    padding: 8px;
+    gap: 6px;
+    border-width: 3px;
+    border-radius: 14px;
+  }
+
+  .topbar nav {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+
+  .topbar .nav-row {
+    justify-content: center;
+  }
+
+  /* Small enough to sit next to the logo. It is a reminder of whose turn it is,
+     not the screen you set the teams up on. */
+  .round-badge {
+    padding: 0 8px 0 2px;
+    gap: 2px;
+  }
+
+  .round-badge em {
+    font-size: 8px;
+    letter-spacing: 0.04em;
+  }
+
+  .round-badge b {
+    font-size: 16px;
+  }
+
+  .team-chip {
+    padding: 4px 6px;
+    gap: 2px;
+    border-width: 2px;
+    border-radius: 9px;
+  }
+
+  .team-chip b {
+    font-size: 11px;
+    padding-bottom: 2px;
+    border-bottom-width: 2px;
+  }
+
+  .team-chip em {
+    font-size: 9px;
+    max-width: 8ch;
+  }
+
+  .player {
+    gap: 4px;
+  }
+
+  .player img {
+    width: 13px;
+    height: 13px;
+  }
+
+  .team-score .pip {
+    width: 9px;
+    height: 9px;
+  }
+}
+
+@media (max-width: 700px) {
+  /*
+   * Four piles across is three and a lonely one on a phone. Two by two, and
+   * bigger for it — a grid rather than a wrapping row, so it is two and two
+   * whatever the piece counts happen to be.
+   */
+  :root {
+    --card-w: min(150px, 40vw);
+  }
+
+  .count-row {
+    display: grid;
+    grid-template-columns: repeat(2, var(--card-w));
+    justify-content: center;
+    gap: 14px;
+  }
+
+  /*
+   * One height for every screen, and never taller than the window.
+   *
+   * Every panel is set to it rather than floored at it, so switching screens
+   * cannot change the size of the box — the few pixels it moved by were the
+   * page scroll being clamped as one screen gave way to a slightly different
+   * one. Anything that does not fit scrolls inside its own box instead of
+   * taking the page with it.
+   */
+  /* Three tiles fit across a phone; two left half the row empty. A grid rather
+     than fixed widths, so they share what there is. */
+  .piece-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+  }
+
+  .piece-tile {
+    width: auto;
+  }
+
+  /*
+   * Clipped at its own edges here. The column is nearly the whole window on a
+   * phone, so nothing is lost — and leaving the sides open let a screen on its
+   * way out make the page twice as wide, which the browser answered by zooming
+   * out to fit and then back in again.
+   */
+  /*
+   * Three rows on a phone, each lined up with the one above: the pile and the
+   * card, then the team under the pile with the sand beside it, then the two
+   * buttons across the bottom. `display: contents` dissolves the info column so
+   * its parts can be placed against the row directly — without it the buttons
+   * are stuck inside a column too narrow to sit them side by side.
+   */
+  .side-info {
+    display: contents;
+  }
+
+  /* Exactly where the team box is, so the row is the same row either way. */
+  .result-text {
+    order: 1;
+    width: var(--card-w);
+  }
+
+  .metrics {
+    gap: 10px;
+  }
+
+  .verdict {
+    max-width: none;
+  }
+
+  .stage-side {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 22px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Both a card wide, and the same gap as the row above, so the team lands
+     under the pile and the sand under the card. */
+  .roles {
+    order: 1;
+    width: var(--card-w);
+    padding: 10px;
+    gap: 10px;
+  }
+
+  /* The buttons carry an extra margin to clear the count hanging under the
+     glass; the middle row takes the same above it so it sits between the two
+     evenly rather than crowding the row above. */
+  .roles,
+  .result-text,
+  .side-timer {
+    margin-top: 26px;
+  }
+
+  .roles-team {
+    font-size: 15px;
+    padding-bottom: 6px;
+  }
+
+  .role {
+    gap: 8px;
+  }
+
+  .role img {
+    width: 30px;
+    height: 30px;
+  }
+
+  .role span {
+    min-width: 0;
+  }
+
+  .role b {
+    font-size: 14px;
+  }
+
+  /* "Observer" is the long one. Sized to fit the box rather than cut short in
+     it — a role you can only half read is no use. */
+  .role em {
+    font-size: 9px;
+    letter-spacing: 0.02em;
+  }
+
+  .side-timer {
+    order: 2;
+    width: var(--card-w);
+  }
+
+  /* Shorter here, and level with the middle of the team box beside it. The
+     count still hangs off the bottom without counting towards its height, which
+     is what lets the glass itself be what is centred. */
+  .hourglass {
+    width: 64px;
+    height: 118px;
+  }
+
+  /*
+   * The status and both buttons will not sit on one line at this width, so the
+   * line breaks inside the words instead — "Restart" over "game". Given a line
+   * of its own the status stops competing for the room, and the buttons keep
+   * their words whole.
+   */
+  .save-bar {
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* Under the buttons, where it reads as a note about them rather than as a
+     heading over them. */
+  .save-bar > .muted {
+    order: 2;
+    flex: 1 1 100%;
+    text-align: center;
+  }
+
+  .save-bar button {
+    white-space: nowrap;
+  }
+
+  .stage-side .actions {
+    order: 3;
+    width: 100%;
+    max-width: calc(var(--card-w) * 2 + 22px);
+    flex-direction: row;
+    gap: 12px;
+    /* Room for the count, which hangs below the glass and out of the flow. */
+    margin-top: 26px;
+  }
+
+  /* Half the row each, rather than a fixed width that would not fit two. */
+  .stage-side .actions button {
+    width: auto;
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 10px 6px;
+  }
+
+  .app {
+    padding: 10px;
+  }
+
+  .slider {
+    clip-path: inset(0 0 -100vh 0);
+    /* And a real clip, not just a painting one: clip-path hides what is out
+       there but the page still counts it, which is what let the width double.
+       Paired with visible on the other axis so a taller screen leaving is
+       still not cut off, and neither makes this a scroll container. */
+    overflow-x: clip;
+    overflow-y: visible;
+  }
+}
+
+@media (max-width: 700px) {
+  /* Beside the logo, taking whatever is left of the line. */
+  .team-strip {
+    order: 2;
+    flex: 1 1 auto;
+    min-width: 0;
+    justify-content: center;
+    padding: 5px;
+    gap: 4px;
+  }
+
+  /*
+   * Two columns rather than a wrapping row: wrapping fits as many as it can and
+   * leaves the remainder on a line of its own, so four teams came out three and
+   * one. In a box of their own, so the round stays beside all of them instead
+   * of having a team land underneath it.
+   */
+  .team-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 4px;
+    flex: 1 1 auto;
+  }
+
+  /* Smaller, to leave that room. */
+  .brand img {
+    width: 92px;
+  }
+
+  /* Name and score only. Who is observing and who is building is on the play
+     screen in front of you, at a size you can actually read. */
+  .team-chip .player {
+    display: none;
+  }
+
+  .team-chip {
+    padding: 4px 6px;
+    border-width: 2px;
+    border-radius: 9px;
+  }
+
+  .team-chip b {
+    font-size: 10px;
+    padding-bottom: 0;
+    /* Nothing left under it to divide off. */
+    border-bottom: none;
+  }
+
+  .team-title {
+    gap: 4px;
+  }
+
+  .team-score {
+    font-size: 10px;
+    gap: 3px;
+    padding-left: 7px;
+  }
+
+  /* Three tiles here too — twelve over a five-tile was two dots and a quarter. */
+  .team-score::before {
+    width: 2px;
+    height: 15px;
+    background-size: 2px 5px;
+  }
+
+  .team-score .pip {
+    width: 9px;
+    height: 9px;
+  }
+
+  /* Tight to its digits: it is the smallest thing in the bar and it was taking
+     the most room per character. */
+  .round-badge {
+    padding: 0 4px 0 0;
+    gap: 1px;
+  }
+
+  .round-badge em {
+    font-size: 7px;
+  }
+
+  .round-badge b {
+    font-size: 13px;
+  }
 }

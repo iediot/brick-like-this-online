@@ -48,33 +48,38 @@ export default function App() {
   // A first visit asks who is playing before anything else. The game is built
   // around two people with different jobs, so there is nothing meaningful to
   // show until it knows there are two of you.
-  const firstRun = !loading && teams.length === 0;
+  /*
+   * No teams yet. It stands in front of Play, because a round needs two people
+   * with different jobs and there is nothing to show without them — but not in
+   * front of the rest of the app: the pieces are worth filling in first, and
+   * the rules are worth reading before you commit to anyone.
+   */
+  const needsTeams = !loading && teams.length === 0;
 
   /* Which screen is showing, and where it sits in the row along the top. The
      slider needs both: the name to notice a change, the position to know which
      way to move. Teams is off the row — it opens out of the strip instead. */
   const view = loading
     ? 'loading'
-    : firstRun
-      ? 'setup'
-      : tab === 'teams'
-        ? 'teams'
-        : tab === 'rules'
-          ? 'rules'
-          : tab === 'inventory'
-            ? 'inventory'
+    : tab === 'teams'
+      ? 'teams'
+      : tab === 'rules'
+        ? 'rules'
+        : tab === 'inventory'
+          ? 'inventory'
+          : needsTeams
+            ? 'setup'
             : empty
               ? 'empty'
               : 'play';
 
   const screen = loading ? (
     <p className="muted">Loading…</p>
-  ) : firstRun ? (
-    <Teams key="setup" teams={teams} firstRun onSave={() => void api.getGame().then(setGame)} />
-  ) : tab === 'teams' ? (
+  ) : tab === 'teams' || (needsTeams && tab === 'play') ? (
     <Teams
-      key={teams.map((t) => t.id).join('|')}
+      key={teams.map((t) => t.id).join('|') || 'setup'}
       teams={teams}
+      firstRun={needsTeams}
       onSave={(saved) => {
         void api.getGame().then(setGame);
         if (saved.length > 0) setTab('play');
@@ -83,7 +88,15 @@ export default function App() {
   ) : tab === 'rules' ? (
     <HowToPlay />
   ) : tab === 'inventory' ? (
-    <Inventory state={inventory} onChange={setInventory} />
+    <Inventory
+      state={inventory}
+      onChange={setInventory}
+      locked={teams.length > 0}
+      onRestart={async () => {
+        await api.restartGame();
+        setGame(await api.getGame());
+      }}
+    />
   ) : empty ? (
     <div className="panel center">
       <h2>No pieces yet</h2>
@@ -152,7 +165,7 @@ export default function App() {
         </h1>
         {/* Teams live in the bar rather than on a screen of their own: they
             are standing context for every round, not somewhere you go. */}
-        {!firstRun && teams.length > 0 ? (
+        {teams.length > 0 ? (
           <button
             className="team-strip"
             onClick={() => setTab('teams')}
@@ -168,34 +181,38 @@ export default function App() {
                 <i>/{TOTAL_ROUNDS}</i>
               </b>
             </span>
-            {teams.map((team, i) => (
-              <span
-                key={team.id}
-                className={`team-chip${game && i === game.activeTeam ? ' active' : ''}`}
-                style={{ '--team': colourFor(i) } as never}
-              >
-                <b className="team-title">
-                  <span>{team.name}</span>
-                  <span className="team-score" title={`${team.score} points`}>
-                    {team.score}
-                    <span className="pip" />
-                  </span>
-                </b>
-                {team.players.map((player, slot) => {
-                  const role = roleOf(team, slot);
-                  return (
-                    <em key={player} className="player">
-                      <img src={ROLE_ICONS[role]} alt={ROLE_LABELS[role]} title={ROLE_LABELS[role]} />
-                      <span>{player}</span>
-                    </em>
-                  );
-                })}
-              </span>
-            ))}
+            {/* Their own box, so the round beside them is one thing next to
+                another rather than one more item in the same flow. */}
+            <span className="team-list">
+              {teams.map((team, i) => (
+                <span
+                  key={team.id}
+                  className={`team-chip${game && i === game.activeTeam ? ' active' : ''}`}
+                  style={{ '--team': colourFor(i) } as never}
+                >
+                  <b className="team-title">
+                    <span>{team.name}</span>
+                    <span className="team-score" title={`${team.score} points`}>
+                      {team.score}
+                      <span className="pip" />
+                    </span>
+                  </b>
+                  {team.players.map((player, slot) => {
+                    const role = roleOf(team, slot);
+                    return (
+                      <em key={player} className="player">
+                        <img src={ROLE_ICONS[role]} alt={ROLE_LABELS[role]} title={ROLE_LABELS[role]} />
+                        <span>{player}</span>
+                      </em>
+                    );
+                  })}
+                </span>
+              ))}
+            </span>
           </button>
         ) : null}
 
-        <nav ref={navRef} hidden={firstRun}>
+        <nav ref={navRef}>
           {tabRow(false)}
           {/* The same labels again in white, behind a window cut to the shape of
               the pill. The pill and the light text are one layer, so a word the

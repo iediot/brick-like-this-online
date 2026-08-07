@@ -327,9 +327,29 @@ export function Play({
         </div>
       ) : null}
 
+      {/*
+        A corner of the window, not of the stage: anchored to the stage it landed
+        on top of the pile, which starts in that same corner. Only before the
+        timer starts, too — backing out mid-build would throw the round away.
+
+        Not while a card is on its way in: the card and the pile fly above
+        everything on the page during that, so an arrow underneath them appears
+        to surface as they land. It goes on the way out rather than waiting for
+        the piles to come back.
+      */}
+      {card && phase === 'card' && (!deal || deal.reverse) ? (
+        <button
+          className={`back-arrow${deal?.reverse ? ' going' : ''}`}
+          onClick={putBack}
+          aria-label="Back"
+        >
+          ←
+        </button>
+      ) : null}
+
       {card && (phase !== 'idle' && (phase !== 'scored' || score)) ? (
         <div
-          className={`stage${
+          className={`stage${phase === 'scored' ? ' scored' : ''}${
             deal && !deal.landed
               ? deal.reverse
                 ? ' undealing'
@@ -339,14 +359,6 @@ export function Play({
               : ''
           }`}
         >
-          {/* Only before the timer starts: backing out mid-build would throw
-              the round away. */}
-          {phase === 'card' ? (
-            <button className="back-arrow" onClick={putBack} aria-label="Back">
-              ←
-            </button>
-          ) : null}
-
           {/*
             One stage for the whole round — card, camera, and result. They are
             the same three boxes in the same three places, so scoring changes
@@ -398,30 +410,39 @@ export function Play({
             <div className="side-info">
               {phase === 'scored' && score ? (
               <>
-                {/* No photo means no measurement, so showing "0 / 7" would be a
-                    verdict on a build nobody saw. */}
-                {score.empty ? (
-                  <div className="result-empty">—</div>
-                ) : (
-                  <div className="result-points">
-                    {score.points}
-                    <span> / {card.points}</span>
-                  </div>
-                )}
-                <p className="verdict">{score.verdict}</p>
-                {score.empty ? null : (
-                  <dl className="metrics">
-                    <div>
-                      <dt>Filled</dt>
-                      <dd>{Math.round(score.coverage * 100)}%</dd>
+                {/* One block, in the place the team held — so the sand beside it
+                    and the photo above it do not move when the round is scored. */}
+                <div className="result-text">
+                  {/* No photo means no measurement, so showing "0 / 7" would be a
+                      verdict on a build nobody saw. */}
+                  {score.empty ? (
+                    <div className="result-empty">—</div>
+                  ) : (
+                    <div className="result-points">
+                      {score.points}
+                      <span> / {card.points}</span>
                     </div>
-                    <div>
-                      <dt>Spilled over</dt>
-                      <dd>{Math.round(score.overflow * 100)}%</dd>
-                    </div>
-                  </dl>
-                )}
+                  )}
+                  <p className="verdict">{score.verdict}</p>
+                  {score.empty ? null : (
+                    <dl className="metrics">
+                      <div>
+                        <dt>Filled</dt>
+                        <dd>{Math.round(score.coverage * 100)}%</dd>
+                      </div>
+                      <div>
+                        <dt>Spilled over</dt>
+                        <dd>{Math.round(score.overflow * 100)}%</dd>
+                      </div>
+                    </dl>
+                  )}
+                </div>
+                {/* Two slots again, so Next round sits exactly where Start
+                    building did rather than sliding across the row. */}
                 <div className="actions">
+                  <button className="spare" tabIndex={-1} aria-hidden disabled>
+                    Next round
+                  </button>
                   <button className="primary" onClick={toIdle}>
                     Next round
                   </button>
@@ -436,7 +457,7 @@ export function Play({
                     {active.players.map((player, seat) => {
                       const role = roleOf(active, seat);
                       return (
-                        <div key={player} className="role">
+                        <div key={player} className={`role role-${role}`}>
                           <img src={ROLE_ICONS[role]} alt="" />
                           <span>
                             <b>{player}</b>
