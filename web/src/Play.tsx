@@ -393,7 +393,10 @@ export function Play({
           </div>
 
           <div className="stage-side">
-            {phase === 'scored' && score ? (
+            {/* Whose round it is and what to do about it, with the sand beside
+                it rather than in among it. */}
+            <div className="side-info">
+              {phase === 'scored' && score ? (
               <>
                 {/* No photo means no measurement, so showing "0 / 7" would be a
                     verdict on a build nobody saw. */}
@@ -426,8 +429,6 @@ export function Play({
               </>
             ) : (
               <>
-                <h2>{card.count} pieces</h2>
-
                 {/* Whose round it is, and which way round they are playing it. */}
                 {active ? (
                   <div className="roles" style={{ '--team': colourFor(game.activeTeam) } as never}>
@@ -446,22 +447,6 @@ export function Play({
                     })}
                   </div>
                 ) : null}
-
-                <div className="timer">
-                  <Hourglass
-                    running={phase === 'timing' || live}
-                    remaining={secondsLeft / (live ? PHOTO_SECONDS : BUILD_SECONDS)}
-                  />
-                  {/* Always here, so the hourglass does not shift sideways the
-                      moment a number appears next to it. */}
-                  <b
-                    className={`${secondsLeft <= 3 ? 'out' : ''}${
-                      phase === 'timing' || live ? '' : ' waiting'
-                    }`.trim()}
-                  >
-                    {formatSeconds(phase === 'timing' || live ? secondsLeft : BUILD_SECONDS)}
-                  </b>
-                </div>
 
                 {/* Two slots, always both here. Dropping to a single button
                     once building starts changed how the row wrapped, and the
@@ -495,7 +480,28 @@ export function Play({
                   )}
                 </div>
               </>
-            )}
+              )}
+            </div>
+
+            {/* Stays through the result, drained, until the piles come back —
+                the round is not over until you move on from it. */}
+            <div className="timer side-timer">
+              <Hourglass
+                turned={phase === 'timing' || live || phase === 'scored'}
+                remaining={
+                  /* Spent once the photo is taken, however it was taken — the
+                     sand does not go back up because you scored early. */
+                  phase === 'scored' ? 0 : secondsLeft / (live ? PHOTO_SECONDS : BUILD_SECONDS)
+                }
+              />
+              <b
+                className={`${secondsLeft <= 3 ? 'out' : ''}${
+                  phase === 'timing' || live ? '' : ' waiting'
+                }`.trim()}
+              >
+                {formatSeconds(phase === 'timing' || live ? secondsLeft : BUILD_SECONDS)}
+              </b>
+            </div>
           </div>
         </div>
       ) : null}

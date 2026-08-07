@@ -906,23 +906,58 @@ button.ghost {
   gap: 22px;
 }
 
+/* Two of them: what the round is about, and how long is left in it. */
 .stage-side {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  /* Reserved so switching to the camera does not resize the column and shove
+     the buttons around. */
+  min-height: 200px;
+}
+
+.side-info {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  /* Reserved so switching to the camera does not resize the column and shove
-     the buttons around. */
-  min-height: 200px;
-  justify-content: center;
+  flex: none;
 }
 
-/* Held to a set width for the same reason it is held to a set height: the row
-   of buttons drops from two to one when building starts, and a column sized to
-   its contents would take the card and the pile with it. */
+/* The sand stands beside the round rather than in among it, and stays put once
+   the round is scored so the column keeps its shape.
+   
+   The count hangs off the bottom rather than sitting in the column, so what is
+   centred against the card is the glass itself. Counted as part of the column,
+   it pushed the glass up by half its own height. */
+.side-timer {
+  position: relative;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  flex: none;
+}
+
+.side-timer b {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 10px;
+  text-align: center;
+}
+
+
+/* Stacked under the team whose round it is, and held to a set width for the
+   same reason the column is held to a set height: a row sized to its contents
+   would take the card and the pile with it whenever the buttons changed. */
 .stage-side .actions {
   width: 100%;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
 /* Present but not there: it keeps its place in the row so the row keeps its
@@ -960,20 +995,24 @@ button.ghost {
 
   /* Room between the pile and the card it dealt. */
   .stage-main {
-    gap: 52px;
+    gap: 36px;
   }
 
-  /* Wide enough for both buttons on one row: they are 150px each plus the
-     gap, and a column any narrower wraps the row — so the panel changed height
+  .hourglass {
+    width: 104px;
+    height: 193px;
+  }
+
+  /* Wide enough for both buttons on one row: they are 158px each plus the
+     gap, and anything narrower wraps the row — so the panel changed height
      whenever the buttons changed. */
-  .stage-side {
-    width: 340px;
-    flex: none;
+  .side-info {
+    width: 240px;
   }
 
   /* Model on the left, what to do about it on the right. Only once there is
      room for the pile, the card and the column side by side. */
-  @media (min-width: 1040px) {
+  @media (min-width: 1120px) {
     .stage {
       flex-direction: row;
       align-items: center;
@@ -989,8 +1028,7 @@ button.ghost {
   }
 
   .stage-side {
-    align-items: flex-start;
-    max-width: 320px;
+    align-items: center;
   }
 
   .stage-side .muted {
@@ -1559,8 +1597,8 @@ button.ghost {
 }
 
 .hourglass {
-  width: 64px;
-  height: 92px;
+  width: 82px;
+  height: 152px;
   flex: none;
 }
 
@@ -1691,12 +1729,13 @@ button.danger {
  */
 .slider {
   position: relative;
-  /* Room for the panels' shadows. Nothing is clipped here any more — a screen
-     leaving is meant to carry on past the edge of the column and out of the
-     window, and clipping it at the column made it vanish a few percent in from
-     the edge instead. The window itself does the hiding. */
+  /* Room for the panels' shadows. Clipped along the top only, so the teams
+     panel sliding up disappears under the bar instead of over it — the sides
+     stay open, because a screen leaving sideways is meant to carry on past the
+     column and out of the window, and the window is what hides that. */
   padding: 14px;
   margin: -14px;
+  clip-path: inset(0 -100vw -100vh -100vw);
 }
 
 .slide {
@@ -1793,14 +1832,14 @@ button.danger {
  * rest of the animation had to catch up.
  */
 .entering-expand {
-  animation: panel-open 220ms cubic-bezier(0.2, 0.85, 0.35, 1) both;
+  animation: panel-open 400ms cubic-bezier(0.16, 0.84, 0.3, 1) both;
   position: relative;
   z-index: 1;
-  will-change: transform, opacity;
+  will-change: transform;
 }
 
 .leaving-expand {
-  animation: fade-away 240ms 200ms ease-out both;
+  animation: fade-away 240ms 300ms ease-out both;
 }
 
 .entering-collapse {
@@ -1817,35 +1856,40 @@ button.danger {
   }
 }
 
-/* Above the screen it is uncovering, which is already there and already solid
-   behind it the whole way out. */
+/* It slides away rather than fading: moving is fine, it was being on screen at
+   half strength that was wrong, because the screen coming back underneath shows
+   through it. */
 .leaving-collapse {
-  animation: panel-shut 220ms 180ms cubic-bezier(0.45, 0, 0.8, 0.5) both;
+  animation: panel-shut 320ms cubic-bezier(0.45, 0, 0.75, 0.45) both;
   z-index: 2;
-  will-change: transform, opacity;
-}
-
-@keyframes panel-open {
-  from {
-    opacity: 0;
-    transform: translate3d(0, -14px, 0);
-  }
-
-  to {
-    opacity: 1;
-    transform: translate3d(0, 0, 0);
-  }
+  will-change: transform;
 }
 
 @keyframes panel-shut {
   from {
-    opacity: 1;
     transform: translate3d(0, 0, 0);
   }
 
   to {
-    opacity: 0;
-    transform: translate3d(0, -12px, 0);
+    transform: translate3d(0, -100vh, 0);
+  }
+}
+
+/*
+ * A window height, not a panel height. The panel is taller than anything that
+ * needs clearing, and — the important part — a viewport unit is the same number
+ * on the first frame as on the last. A percentage is measured against the
+ * element's own box, and this element was built the same frame it starts
+ * moving, so its box is not settled yet: that is what had it starting halfway
+ * down and lurching the rest of the way.
+ */
+@keyframes panel-open {
+  from {
+    transform: translate3d(0, -100vh, 0);
+  }
+
+  to {
+    transform: translate3d(0, 0, 0);
   }
 }
 

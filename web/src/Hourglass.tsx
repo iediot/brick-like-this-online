@@ -17,15 +17,15 @@
  * across the middle of the glass.
  */
 const GLASS =
-  'M 14 12 H 42 C 42 22 30 25 30 32 C 30 39 42 42 42 52 H 14 C 14 42 26 39 26 32 C 26 25 14 22 14 12 Z';
+  'M 14 12 H 42 C 42 30 30 42 30 52 C 30 62 42 74 42 92 H 14 C 14 74 26 62 26 52 C 26 42 14 30 14 12 Z';
 
 /** The same curves again, split, purely to clip each bulb's sand. */
-const UPPER = 'M 14 12 H 42 C 42 22 30 25 30 32 H 26 C 26 25 14 22 14 12 Z';
-const LOWER = 'M 26 32 C 26 39 14 42 14 52 H 42 C 42 42 30 39 30 32 H 26 Z';
+const UPPER = 'M 14 12 H 42 C 42 30 30 42 30 52 H 26 C 26 42 14 30 14 12 Z';
+const LOWER = 'M 26 52 C 26 62 14 74 14 92 H 42 C 42 74 30 62 30 52 H 26 Z';
 
 /** The axis the glass is symmetric about, and the waist it drains through. */
 const CENTRE = 28;
-const NECK = 32;
+const NECK = 52;
 
 type Point = readonly [number, number];
 
@@ -75,13 +75,19 @@ function levelForArea(p0: Point, p1: Point, p2: Point, p3: Point): (fraction: nu
 }
 
 /** The right-hand edges of the two bulbs, straight off the GLASS outline. */
-const upperLevel = levelForArea([42, 12], [42, 22], [30, 25], [30, NECK]);
-const lowerLevel = levelForArea([30, NECK], [30, 39], [42, 42], [42, 52]);
+const upperLevel = levelForArea([42, 12], [42, 30], [30, 42], [30, NECK]);
+const lowerLevel = levelForArea([30, NECK], [30, 62], [42, 74], [42, 92]);
 
-export function Hourglass({ running, remaining }: { running: boolean; remaining: number }) {
-  const top = Math.max(0, Math.min(1, remaining));
+/**
+ * `turned` is whether the glass has been flipped for this round, not whether
+ * sand is currently falling. It stays true once the sand has run out: a glass
+ * does not right itself when it empties, and letting the class come off ran the
+ * flip backwards, so it turned itself over again the moment the round scored.
+ */
+export function Hourglass({ turned, remaining }: { turned: boolean; remaining: number }) {
+  const top = turned ? Math.max(0, Math.min(1, remaining)) : 0;
   const bottom = 1 - top;
-  const draining = running && top > 0 && top < 1;
+  const draining = turned && top > 0 && top < 1;
 
   /* Upper bulb: the surface sinks towards the neck, dipping in the middle as a
      funnel forms over the hole. The dip flattens out as the sand runs low. */
@@ -93,8 +99,8 @@ export function Hourglass({ running, remaining }: { running: boolean; remaining:
 
   return (
     <svg
-      viewBox="0 0 56 64"
-      className={`hourglass${running ? ' flipped' : ''}`}
+      viewBox="0 0 56 104"
+      className={`hourglass${turned ? ' flipped' : ''}`}
       aria-hidden="true"
     >
       <defs>
@@ -114,12 +120,12 @@ export function Hourglass({ running, remaining }: { running: boolean; remaining:
           timer pooled at the bottom. The sand counter-rotates so it always
           falls down the screen, and since the glass is symmetric under a
           half-turn the clips still line up. */}
-      <g transform={running ? 'rotate(180 28 32)' : undefined}>
+      <g transform={turned ? 'rotate(180 28 52)' : undefined}>
         {top > 0.005 ? (
           <g clipPath="url(#hg-upper)">
             <path
               className="hg-sand"
-              d={`M 6 ${level} Q 28 ${level + dip * 2} 48 ${level} L 48 33 L 6 33 Z`}
+              d={`M 6 ${level} Q 28 ${level + dip * 2} 48 ${level} L 48 53 L 6 53 Z`}
             />
           </g>
         ) : null}
@@ -128,7 +134,7 @@ export function Hourglass({ running, remaining }: { running: boolean; remaining:
           <g clipPath="url(#hg-lower)">
             <path
               className="hg-sand"
-              d={`M 6 ${peak + 3} Q 28 ${peak - 3} 48 ${peak + 3} L 48 53 L 6 53 Z`}
+              d={`M 6 ${peak + 3} Q 28 ${peak - 3} 48 ${peak + 3} L 48 93 L 6 93 Z`}
             />
           </g>
         ) : null}
@@ -141,7 +147,7 @@ export function Hourglass({ running, remaining }: { running: boolean; remaining:
           <path
             className="hg-sand"
             clipPath="url(#hg-lower)"
-            d={`M 27.15 31 H 28.85 L 28.4 ${peak} H 27.6 Z`}
+            d={`M 27.15 51 H 28.85 L 28.4 ${peak} H 27.6 Z`}
           />
         ) : null}
       </g>
@@ -150,9 +156,9 @@ export function Hourglass({ running, remaining }: { running: boolean; remaining:
 
       <g className="hg-frame">
         <rect x="4" y="2" width="48" height="10" rx="3" />
-        <rect x="4" y="52" width="48" height="10" rx="3" />
-        <rect x="6" y="10" width="5" height="44" rx="2.5" />
-        <rect x="45" y="10" width="5" height="44" rx="2.5" />
+        <rect x="4" y="92" width="48" height="10" rx="3" />
+        <rect x="6" y="10" width="5" height="84" rx="2.5" />
+        <rect x="45" y="10" width="5" height="84" rx="2.5" />
       </g>
     </svg>
   );
