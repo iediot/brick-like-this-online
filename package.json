@@ -1,0 +1,13 @@
+{
+  "name": "brick-like-this-online",
+  "private": true,
+  "type": "module",
+  "workspaces": ["web", "server"],
+  "scripts": {
+    "dev": "node --watch server/src/index.ts & npm --workspace web run dev",
+    "dev:server": "npm --workspace server run dev",
+    "dev:web": "npm --workspace web run dev",
+    "build": "npm --workspace web run build",
+    "start": "npm --workspace server run start"
+  }
+}

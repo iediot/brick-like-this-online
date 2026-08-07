@@ -1,0 +1,2070 @@
+:root {
+  /* Pile cards and the drawn card are the same size, so choosing a pile and
+     seeing the model happen at the same scale. */
+  --card-w: 112px;
+  /* Taken from the logo: navy ink, magenta, teal, yellow, orange. */
+  --bg: #fdf8ec;
+  /* Windows are yellow with a white border, like the rulebook's own panels. */
+  --panel: #f6c53f;
+  /* Surfaces that sit inside a window stay white, so they read as cards on it. */
+  --card: #ffffff;
+  --ink: #23395e;
+  /* Body copy is the logo's teal, deepened so it holds up on the yellow
+     window; the all-caps headings take the magenta. */
+  --text: #0e6f64;
+  --muted: #6a5a2a;
+  --line: #d9e0ea;
+  --accent: #f57f20;
+  --accent-ink: #ffffff;
+  --good: #4bb3a4;
+  --pink: #bd3a86;
+  /* The pattern behind everything is bright, so the app stays light. */
+  color-scheme: light;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  /* Always show the scrollbar track. Without it a short screen has none and a
+     long one does, so the whole centred layout — logo included — jumps
+     sideways as you switch tabs. `overflow-y: scroll` is the version that
+     works everywhere; scrollbar-gutter is the tidier modern equivalent. */
+  overflow-y: scroll;
+  scrollbar-gutter: stable;
+  /* A screen on its way out travels past the edge of the window, so the window
+     is what hides it. `clip` rather than `hidden`: it stops the page scrolling
+     sideways without making this a scroll container, which would break the
+     sticky-free layout above it. */
+  overflow-x: clip;
+  /* Stop rubber-band overscroll from dragging the page off the pattern and
+     revealing the root behind it. */
+  overscroll-behavior: none;
+  background: #47a89f;
+  height: 100%;
+}
+
+body {
+  overscroll-behavior: none;
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, sans-serif;
+  background: transparent;
+}
+
+/*
+ * The pattern is a real fixed element, drawn before the app and never moving.
+ * background-attachment: fixed left dark bars at the edges on wide screens,
+ * and a ::before at z-index -1 was painted over by body's own background.
+ */
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: #47a89f url('/site-bg.png') center / cover no-repeat;
+  /*
+   * Promoted to its own compositing layer. It is a large image scaled to cover
+   * the window, and without this the browser re-rasterises it alongside the
+   * content on every zoom step, which is what makes zooming stutter.
+   */
+  transform: translateZ(0);
+  will-change: transform;
+  backface-visibility: hidden;
+}
+
+.app {
+  position: relative;
+}
+
+/* Every screen is the same width, so the column lives on the container and each
+   pane simply fills it — which is also what makes a slide travel exactly one
+   screen width and no more. */
+.app {
+  max-width: 560px;
+  margin: 0 auto;
+  padding: 20px 14px 48px;
+}
+
+/* Spans the window rather than the centred column, so the logo reaches the
+   actual corner. Padding keeps it off the edge on a phone. */
+.topbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 10px 0;
+}
+
+.brand {
+  margin: 0;
+  line-height: 0;
+}
+
+.brand img {
+  display: block;
+  width: 124px;
+  height: auto;
+  /* The logo is a sticker; a drop shadow lifts it off the busy background. */
+  filter: drop-shadow(0 2px 4px rgb(0 0 0 / 0.28));
+}
+
+h2 {
+  font-size: 17px;
+  margin: 0 0 6px;
+  color: var(--text);
+}
+
+/* Every all-caps heading on the site. Buttons keep their own colour, so the
+   top nav is untouched. */
+h3 {
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--pink);
+  margin: 0 0 10px;
+}
+
+nav {
+  position: relative;
+  background: var(--card);
+  padding: 5px;
+  border: 4px solid #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 0 rgb(35 57 94 / 0.18);
+}
+
+nav button {
+  border: none;
+  box-shadow: none;
+}
+
+nav button:hover:not(:disabled),
+nav button:active:not(:disabled) {
+  transform: none;
+  box-shadow: none;
+}
+
+.panel {
+  background: var(--panel);
+  border: 5px solid #fff;
+  border-radius: 22px;
+  padding: 18px;
+  box-shadow: 0 6px 0 rgb(35 57 94 / 0.22);
+  position: relative;
+  /* Keeps repaints inside the panel instead of cascading across the page. */
+  contain: layout style;
+  /* Both screens stand the same height, so switching tabs does not resize the
+     page under you. The pieces board grows past this; play fills it. */
+  min-height: 380px;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Play has less in it, so its contents sit centred in the taller panel. */
+.panel > .stage,
+.panel > .center {
+  flex: 1;
+  justify-content: center;
+}
+
+/* The cards are the whole screen — no heading, no dead space above or below. */
+.piles {
+  gap: 0;
+  padding: 0;
+}
+
+.piles .count-row {
+  width: 100%;
+}
+
+.center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 14px;
+}
+
+button {
+  font: inherit;
+  font-weight: 600;
+  padding: 10px 16px;
+  border-radius: 13px;
+  border: 2.5px solid var(--ink);
+  background: var(--card);
+  color: var(--ink);
+  cursor: pointer;
+  box-shadow: 0 3px 0 rgb(35 57 94 / 0.22);
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+
+button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 0 rgb(35 57 94 / 0.26);
+}
+
+/* Buttons press down rather than just changing colour. */
+button:active:not(:disabled) {
+  transform: translateY(2px);
+  box-shadow: 0 1px 0 rgb(35 57 94 / 0.22);
+}
+
+button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+button.on {
+  background: var(--ink);
+  color: #fff;
+}
+
+button.primary {
+  background: var(--accent);
+  color: var(--accent-ink);
+}
+
+button.ghost {
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1;
+  padding: 4px 8px;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 1px 7px;
+  border-radius: 999px;
+  background: var(--pink);
+  font-size: 11px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.muted {
+  color: var(--muted);
+  margin: 0;
+  max-width: 42ch;
+}
+
+/* Anything outside a panel is over the pattern and needs its own surface. */
+.app > .error,
+.app > .muted {
+  background: var(--panel);
+  padding: 10px 14px;
+  border-radius: 10px;
+  max-width: none;
+}
+
+.error {
+  color: #fff;
+  background: var(--pink);
+  padding: 8px 12px;
+  border-radius: 10px;
+  margin: 12px 0 0;
+  font-weight: 600;
+}
+
+/* Rows of buttons. This was lost when the old inventory table styles were
+   deleted, which left every button pair with no gap between them. */
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.center-actions {
+  justify-content: center;
+}
+
+/*
+ * A set width, not a floor. With a floor, a longer label still makes a wider
+ * button — so the row re-centred itself the moment "Waking…" became "Score it
+ * now". Every label here is short enough to sit on one line inside it, and
+ * nowrap makes sure of it.
+ */
+.stage-side .actions button {
+  width: 158px;
+  min-width: 0;
+  flex: none;
+  white-space: nowrap;
+}
+
+/* Cards */
+.tiers {
+  display: flex;
+  gap: 6px;
+}
+
+.card-face {
+  margin: 0;
+  width: 100%;
+  max-width: 300px;
+}
+
+.card-face svg {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  display: block;
+}
+
+.card-face path {
+  fill: var(--ink);
+}
+
+.card-face figcaption {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-top: 10px;
+  font-size: 14px;
+}
+
+.points {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+/* Live camera */
+.viewport {
+  position: relative;
+  width: 100%;
+  max-width: 340px;
+  aspect-ratio: 1;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #000;
+}
+
+.viewport video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+/* Live: the video sits behind the card and shows through the model. Kept the
+   tier colour rather than black, so any sub-pixel sliver at the rounded edge
+   matches the card instead of showing as a dark line. */
+.shape-card.live {
+  background: var(--tier);
+}
+
+.card-video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Matches the centre crop the scorer takes, so the window you aim through
+     is the region that gets measured. */
+  object-fit: cover;
+  display: block;
+}
+
+.model.cutout {
+  position: relative;
+}
+
+.steps {
+  text-align: left;
+  margin: 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--muted);
+}
+
+.steps li.now {
+  color: var(--ink);
+  font-weight: 500;
+}
+
+.steps li.done {
+  text-decoration: line-through;
+  opacity: 0.6;
+}
+
+/* Result */
+.result-points {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.result-points span {
+  font-size: 20px;
+  color: var(--muted);
+  font-weight: 400;
+}
+
+.verdict {
+  margin: 0;
+  font-size: 15px;
+  max-width: 34ch;
+}
+
+/* The photo fills the card's slot exactly, because it is a photo of the card's
+   worth of table. Sized to its own contents it came out smaller than the card
+   and everything beside it shifted when the result appeared. */
+.result-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  border-radius: 11px;
+  background: var(--bg);
+  image-rendering: pixelated;
+}
+
+.metrics {
+  display: flex;
+  gap: 28px;
+  margin: 0;
+}
+
+.metrics dt {
+  font-size: 11px;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.metrics dd {
+  margin: 2px 0 0;
+  font-size: 19px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Pile scanner */
+.scanner {
+  margin: 14px 0;
+}
+
+.scanner-off {
+  font-size: 13px;
+  padding: 8px 12px;
+  border: 2px dashed var(--ink);
+  border-radius: 10px;
+  max-width: none;
+  color: var(--ink);
+}
+
+.scanned-note {
+  font-size: 13px;
+  color: var(--good);
+}
+
+.viewport.wide {
+  max-width: 100%;
+  aspect-ratio: 4 / 3;
+}
+
+/* ---- Shape cards, styled after the physical deck ---- */
+
+.count-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+/* Pile colours from the box: pale yellow, gold, orange, red. */
+.tier-5 { --tier: #f6dd7e; }
+.tier-6 { --tier: #f5c33b; }
+.tier-7 { --tier: #e8802a; }
+.tier-8 { --tier: #d63426; }
+
+/*
+ * Real cards are 63x88mm, so everything card-shaped uses that ratio.
+ *
+ * The white edge is a shadow ring rather than a border. `aspect-ratio` sizes
+ * the border box, so a real border leaves the content box at a slightly
+ * different ratio — and the model, which keeps 63:88, then letterboxes inside
+ * it and shows a transparent strip just within the edge once the camera is
+ * behind the card. A ring is painted outside the box and changes no geometry.
+ */
+.shape-card {
+  aspect-ratio: 63 / 88;
+  background: var(--tier);
+  border: none;
+  border-radius: 11px;
+  box-shadow:
+    0 0 0 3px #fff,
+    0 2px 7px rgb(0 0 0 / 0.28);
+}
+
+/*
+ * A pile is a stack: the card you can take, with the rest of the deck showing
+ * behind it. The stack is what makes taking one read as taking the top card
+ * off a pile rather than pressing a button.
+ */
+.deck {
+  position: relative;
+  width: var(--card-w);
+  aspect-ratio: 63 / 88;
+  flex: none;
+  /* Depth for the turn. Without it the card squashes instead of rotating. */
+  perspective: 1100px;
+}
+
+.deck::before,
+.deck::after,
+.pile-ghost::before,
+.pile-ghost::after,
+.carry-card::before,
+.carry-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: 11px;
+  background: var(--tier);
+  box-shadow:
+    0 0 0 3px #fff,
+    0 2px 6px rgb(0 0 0 / 0.22);
+  transition: opacity 180ms ease-out;
+}
+
+.deck::before,
+.pile-ghost::before,
+.carry-card::before {
+  transform: translate(5px, 6px) rotate(1.8deg);
+}
+
+.deck::after,
+.pile-ghost::after,
+.carry-card::after {
+  transform: translate(-4px, 3px) rotate(-1.3deg);
+}
+
+/* Coming back onto the table between rounds, by the edge each left by, and
+   staggered from the middle out so the row deals itself back. */
+.deck.arriving {
+  animation: ghost-in-right 620ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
+  animation-delay: var(--in-delay, 0ms);
+  pointer-events: none;
+}
+
+.deck.arriving.exit-left {
+  animation-name: ghost-in-left;
+}
+
+/* The card itself carries no face of its own: it is the hinge the two faces
+   hang off, which is what lets one be the number and the other the model. */
+.count-card {
+  position: absolute;
+  inset: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  box-shadow: none;
+  border-radius: 11px;
+  cursor: pointer;
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  overflow: hidden;
+  border-radius: 11px;
+  background: var(--tier);
+  box-shadow:
+    0 0 0 3px #fff,
+    0 2px 7px rgb(0 0 0 / 0.28);
+  /* Each face is invisible from behind, so only the one turned towards you
+     shows and the two never bleed through each other. */
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+  /*
+   * And a hair of depth, so the two are never on exactly the same plane. On the
+   * same plane the renderer has no basis for ordering them and the far one
+   * punches through, mirrored — which is the whole reason the number used to
+   * show over the model at a half turn.
+   */
+  transform: translateZ(1px);
+}
+
+/* Block rather than flex: the model is a single svg that fills the face, the
+   same way it does on the drawn card. */
+.face.back {
+  display: block;
+  transform: rotateY(180deg) translateZ(1px);
+}
+
+/*
+ * The number and the studs are part of the card, so they have to turn with it.
+ * Without a backface of their own they carried on painting through the reverse
+ * of the card as it went past, and read as printed on the screen rather than on
+ * the card. The prefixed forms are here for the same reason they usually are.
+ */
+.face > *,
+.face .numeral,
+.face .pips {
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
+}
+
+/* The generic button hover sets a box-shadow, which on the hinge would paint a
+   rectangle floating in front of both faces. */
+.count-card:hover,
+.count-card:active {
+  box-shadow: none;
+}
+
+.deck .count-card:hover:not(:disabled) {
+  transform: translateY(-5px);
+}
+
+.deck .count-card:active:not(:disabled) {
+  transform: translateY(1px);
+}
+
+.count-card:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+
+
+/* The back of a pile card carries only the number and its points, so both are
+   sized to be read across a table. */
+.numeral {
+  font-size: 58px;
+  font-weight: 800;
+  line-height: 1;
+  color: #fff;
+  -webkit-text-stroke: 3.5px #23395e;
+  paint-order: stroke fill;
+}
+
+.pips {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  align-items: center;
+}
+
+.pip-row {
+  display: flex;
+  gap: 3px;
+}
+
+/* The stud sprite, used anywhere a point is shown. */
+.pip {
+  width: 15px;
+  height: 15px;
+  background: url('/point.png') center / contain no-repeat;
+}
+
+/* The drawn card: model on a coloured face, number in the corner. */
+.shape-card {
+  position: relative;
+  width: 100%;
+  max-width: var(--card-w);
+  padding: 0;
+  overflow: hidden;
+}
+
+.shape-card .corner,
+.face.back .corner {
+  position: absolute;
+  top: 5px;
+  right: 13px;
+  font-size: 31px;
+  font-weight: 800;
+  color: #fff;
+  -webkit-text-stroke: 2px #23395e;
+  paint-order: stroke fill;
+  z-index: 1;
+}
+
+.model {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/*
+ * Three mutually exclusive modes, scoped so they cannot override each other.
+ * They collided before: `.model path` outranked `.cutout-edge`, so the cutout's
+ * outline was filled navy and painted the model straight back over the video.
+ */
+.model:not(.cutout) path {
+  fill: #23395e;
+  /* Arches carry their opening as a second subpath; even-odd punches it out
+     whichever way it happens to be traced. */
+  fill-rule: evenodd;
+}
+
+/* Plain cards: a hairline in the fill's own colour, closing the thread of card
+   colour that shows wherever two edges of the model meet exactly. */
+.model:not(.cutout):not(.seams) path {
+  stroke: #23395e;
+  stroke-width: 0.25;
+  stroke-linejoin: miter;
+}
+
+/* Only the easiest cards show where one piece ends and the next begins. */
+.model.seams path {
+  stroke: var(--tier);
+  stroke-width: 0.6;
+  stroke-linejoin: miter;
+}
+
+/* Live: the card fills solid and the model is the hole. */
+.model.cutout .cutout-fill {
+  fill: var(--tier);
+}
+
+.model.cutout .cutout-seam {
+  fill: none;
+  stroke: var(--tier);
+  stroke-width: 0.6;
+  stroke-linejoin: miter;
+}
+
+.small {
+  font-size: 12px;
+}
+
+/* ---- Inventory board ---- */
+
+.board-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 6px;
+}
+
+/*
+ * Multi-column rather than a grid: categories are different heights, and a
+ * grid row is as tall as its tallest cell, so short categories left big gaps.
+ * Columns let the next category start straight under the previous one.
+ */
+.families {
+  columns: 1;
+  column-gap: 26px;
+}
+
+.family {
+  color: var(--ink);
+  /* Keep a category whole rather than splitting it across two columns. */
+  break-inside: avoid;
+  display: inline-block;
+  width: 100%;
+  margin-bottom: 16px;
+}
+
+.family h3 {
+  margin: 0 0 8px;
+}
+
+/* Tiles are sized to their contents and wrap; stretching them to fill the
+   column left each piece marooned in a mostly empty box. */
+.piece-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+
+.piece-tile {
+  width: 116px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 6px 7px;
+  border: 2.5px solid #fff;
+  border-radius: 14px;
+  background: var(--card);
+}
+
+/* Owned pieces stand out, so the board reads as "what I have" at a glance. */
+.piece-tile.has {
+  border-color: var(--accent);
+}
+
+.piece-icon {
+  width: 100%;
+  height: 42px;
+  display: block;
+}
+
+.piece-icon path {
+  fill: var(--ink);
+  fill-rule: evenodd;
+}
+
+.piece-tile:not(.has) .piece-icon path {
+  fill: var(--muted);
+  opacity: 0.4;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.stepper button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border-radius: 9px;
+  border-width: 2px;
+  font-size: 16px;
+  line-height: 1;
+  box-shadow: 0 2px 0 rgb(35 57 94 / 0.2);
+}
+
+.stepper input {
+  width: 40px;
+  font-weight: 700;
+  text-align: center;
+  font: inherit;
+  font-variant-numeric: tabular-nums;
+  padding: 4px 2px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--ink);
+  -moz-appearance: textfield;
+}
+
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Stays reachable while you scroll a long list. */
+.save-bar {
+  position: sticky;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: auto;
+  padding: 12px 0 4px;
+  background: linear-gradient(to top, var(--panel) 72%, transparent);
+}
+
+.save-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* In the save bar the scanner is just another button. */
+.save-actions .scanner {
+  margin: 0;
+}
+
+/* ---- Desktop ------------------------------------------------------------
+   The base layout is a phone column, which is right for playing with a phone
+   propped over the table. On a wider screen that column strands itself in the
+   middle of the background, so from here up the app spreads out and the play
+   area becomes two columns: the thing you look at, and the thing you do. */
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 16px;
+  /* The back arrow is positioned against this rather than against whichever
+     ancestor happens to be positioned, so an animation's transform cannot
+     change what it is measured from and shift it. */
+  position: relative;
+}
+
+.stage-main {
+  width: 100%;
+  display: flex;
+  /* Never squeezed by the column beside it. */
+  flex: 0 1 auto;
+  justify-content: center;
+  /* Pile on the left, drawn card beside it — which pushes the card and
+     everything past it across to make room. */
+  align-items: center;
+  gap: 22px;
+}
+
+.stage-side {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  /* Reserved so switching to the camera does not resize the column and shove
+     the buttons around. */
+  min-height: 200px;
+  justify-content: center;
+}
+
+/* Held to a set width for the same reason it is held to a set height: the row
+   of buttons drops from two to one when building starts, and a column sized to
+   its contents would take the card and the pile with it. */
+.stage-side .actions {
+  width: 100%;
+  justify-content: center;
+}
+
+/* Present but not there: it keeps its place in the row so the row keeps its
+   shape, which is the whole point of it. */
+.actions button.spare {
+  visibility: hidden;
+}
+
+.stage-side h2 {
+  margin: 0;
+}
+
+@media (min-width: 900px) {
+  .panel {
+    min-height: max(440px, calc(var(--card-w) * 88 / 63 + 120px));
+  }
+
+  .app {
+    /* Fills the window, keeping a margin so panels do not touch the edges. */
+    max-width: min(1500px, 88vw);
+    padding: 26px 0 52px;
+  }
+
+  .topbar {
+    padding: 6px 1.6vw 0;
+  }
+
+  .brand img {
+    width: 158px;
+  }
+
+  .panel {
+    padding: 28px;
+  }
+
+  /* Room between the pile and the card it dealt. */
+  .stage-main {
+    gap: 52px;
+  }
+
+  /* Wide enough for both buttons on one row: they are 150px each plus the
+     gap, and a column any narrower wraps the row — so the panel changed height
+     whenever the buttons changed. */
+  .stage-side {
+    width: 340px;
+    flex: none;
+  }
+
+  /* Model on the left, what to do about it on the right. Only once there is
+     room for the pile, the card and the column side by side. */
+  @media (min-width: 1040px) {
+    .stage {
+      flex-direction: row;
+      align-items: center;
+      justify-content: center;
+      text-align: left;
+      gap: 42px;
+    }
+  }
+
+  .stage-main {
+    width: auto;
+    flex: 0 0 auto;
+  }
+
+  .stage-side {
+    align-items: flex-start;
+    max-width: 320px;
+  }
+
+  .stage-side .muted {
+    max-width: none;
+  }
+
+  .stage-side .actions {
+    justify-content: center;
+  }
+
+
+
+  .viewport {
+    max-width: 480px;
+  }
+
+  .result-canvas {
+    max-width: 380px;
+  }
+
+  .steps {
+    font-size: 14px;
+  }
+
+  /* Bigger piles — they are the main thing on the screen. */
+  :root {
+    --card-w: min(300px, 21vw);
+  }
+
+  .numeral {
+    font-size: min(148px, 10.5vw);
+    -webkit-text-stroke-width: 7px;
+  }
+
+  .pip {
+    width: 30px;
+    height: 30px;
+  }
+
+  .pips {
+    gap: 5px;
+  }
+
+  .pip-row {
+    gap: 5px;
+  }
+
+  .count-row {
+    gap: 16px;
+  }
+
+  .result-points {
+    font-size: 68px;
+  }
+
+  .families {
+    columns: 3;
+  }
+
+  .piece-icon {
+    height: 52px;
+  }
+}
+
+/* Wider still: let the piece list breathe rather than stretching rows. */
+/* Very wide: three categories across rather than stretching two. */
+@media (min-width: 1500px) {
+  .app {
+    max-width: min(1750px, 88vw);
+  }
+
+  .topbar {
+    padding: 8px 1.6vw 0;
+  }
+
+  .families {
+    columns: 4;
+  }
+}
+
+/* ---- How to play ---- */
+
+.rules {
+  gap: 18px;
+  line-height: 1.6;
+}
+
+.rules-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.rules h3 {
+  font-size: 14px;
+  margin: 0;
+}
+
+.pdf-link {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--accent);
+}
+
+/* The two pages, stacked. */
+.rulebook {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* The spreads are nearly 3:1 and the column is no longer built around them, so
+   they read small at full width. Centred and given room rather than stretched. */
+.rules-page {
+  margin-inline: auto;
+}
+
+/*
+ * Whole spread, always. No fixed aspect and no object-fit: these are wide
+ * fold-out spreads, and anything cropped to fit a box is a rule nobody can
+ * read. The width is what gets adjusted, never the crop.
+ */
+.rules-page {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* No frame: the spreads already have their own yellow border printed in. */
+  border: none;
+  border-radius: 0;
+}
+
+.rules section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rules p {
+  margin: 0;
+  max-width: 62ch;
+}
+
+.rules-list {
+  margin: 0;
+  padding-left: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  max-width: 62ch;
+}
+
+.rules-list li::marker {
+  color: var(--accent);
+}
+
+.sources {
+  margin: 0;
+  font-size: 12px;
+  color: var(--muted);
+  border-top: 2px solid var(--line);
+  padding-top: 12px;
+}
+
+.sources a,
+.rules-list a {
+  color: var(--muted);
+}
+
+/* ---- Teams ---- */
+
+.teams-head {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 16px;
+}
+
+.teams-head h2 {
+  margin: 0;
+}
+
+.team-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+  align-content: start;
+}
+
+.team-card {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 12px;
+  background: var(--card);
+  /* Each team takes its own colour, so they are told apart at a glance rather
+     than by reading. */
+  border: 3px solid var(--team);
+  border-radius: 16px;
+}
+
+.team-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.team-name {
+  flex: 1;
+  font: inherit;
+  font-weight: 700;
+  font-size: 16px;
+  color: var(--team);
+  background: transparent;
+  border: none;
+  border-bottom: 3px dotted color-mix(in srgb, var(--team) 55%, transparent);
+  padding: 3px 2px;
+  min-width: 0;
+}
+
+.team-name:focus {
+  outline: none;
+  border-bottom-style: solid;
+}
+
+.player-name {
+  font: inherit;
+  padding: 8px 10px;
+  border: 2px solid var(--line);
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--ink);
+  min-width: 0;
+}
+
+.player-name:focus {
+  outline: none;
+  border-color: var(--team);
+}
+
+/* Locked for the duration of a game: readable, clearly not editable. */
+.team-name:disabled,
+.player-name:disabled {
+  opacity: 1;
+  cursor: default;
+  border-color: transparent;
+  background: transparent;
+  -webkit-text-fill-color: currentColor;
+}
+
+.add-team {
+  min-height: 76px;
+  border-style: dashed;
+  color: var(--muted);
+  align-self: stretch;
+}
+
+@media (min-width: 700px) {
+  .team-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (min-width: 1100px) {
+  .team-grid {
+    grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  }
+}
+
+/* ---- Teams in the top bar ---- */
+
+.team-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  padding: 15px 14px;
+  /* Same treatment as the windows: yellow face, white edge. */
+  background: var(--panel);
+  border: 4px solid #fff;
+  border-radius: 18px;
+  box-shadow: 0 4px 0 rgb(35 57 94 / 0.18);
+  min-width: 0;
+}
+
+.team-strip:hover:not(:disabled) {
+  transform: none;
+  box-shadow: 0 4px 0 rgb(35 57 94 / 0.18);
+}
+
+/* Each team is its own yellow window, and the strip is a larger yellow window
+   holding them all. The white outlines are what separate them. */
+.team-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  line-height: 1.25;
+  gap: 5px;
+  padding: 9px 13px;
+  min-width: 0;
+  background: var(--panel);
+  border: 3px solid #fff;
+  border-radius: 14px;
+}
+
+/* The team's colour is the rule under its name, dividing the team from its
+   players — which is what the colour is for, so it need not also be a border
+   down the side. */
+.team-chip b {
+  font-size: 17px;
+  color: var(--team);
+  padding-bottom: 6px;
+  border-bottom: 3px dotted var(--team);
+}
+
+.team-chip em {
+  font-style: normal;
+  font-size: 14px;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 14ch;
+}
+
+/* On a phone the bar has no room for three blocks side by side. */
+@media (max-width: 860px) {
+  .topbar {
+    flex-wrap: wrap;
+  }
+
+  .team-strip {
+    order: 3;
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+/* ---- Turn, roles and scores ---- */
+
+.back-arrow {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  width: 42px;
+  height: 42px;
+  padding: 0;
+  font-size: 20px;
+  line-height: 1;
+  z-index: 2;
+}
+
+/* Role icons: the telescope for the one who describes, the brick and hand for
+   the one who builds. */
+.player img,
+.turn-role img {
+  width: 22px;
+  height: 22px;
+  flex: none;
+  display: block;
+}
+
+.player {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.turn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 18px 14px;
+  margin-bottom: 6px;
+  border-bottom: 3px dashed color-mix(in srgb, var(--team) 55%, transparent);
+}
+
+.turn-round {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+}
+
+.turn-team {
+  font-size: 26px;
+  color: var(--team);
+  line-height: 1;
+}
+
+.turn-roles {
+  display: flex;
+  gap: 22px;
+  margin-top: 4px;
+}
+
+.turn-role {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.turn-role img {
+  width: 34px;
+  height: 34px;
+}
+
+.turn-role b {
+  display: block;
+  font-size: 15px;
+  color: var(--ink);
+}
+
+.turn-role em {
+  display: block;
+  font-style: normal;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--muted);
+}
+
+/*
+ * The team whose turn it is stands out by being the only one at full strength.
+ * A tinted panel behind it just made a third nested box inside the strip.
+ */
+.team-chip {
+  opacity: 0.45;
+  transition: opacity 0.15s ease;
+}
+
+.team-chip.active {
+  opacity: 1;
+}
+
+/* Name on the left, score on the right, above the dotted rule. */
+.team-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  /* Both sides hug their glyphs. With the chip's 1.25 line-height the digits
+     carry descender space below them, which centred the box but left the
+     number sitting visibly low against the name. */
+  line-height: 1;
+}
+
+.team-score {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding-left: 14px;
+  align-self: stretch;
+  position: relative;
+  /* Matches the team name's weight and size, so the two sides of the rule read
+     as a pair rather than a label and a footnote. */
+  font-size: 17px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: var(--pink);
+}
+
+/*
+ * Drawn rather than using `border-left: dotted`. A dotted border spaces its
+ * dots to fit the box, so at this height they landed unevenly and got clipped
+ * at the ends. A repeating radial gradient gives round dots at a fixed pitch,
+ * centred on the row.
+ */
+.team-score::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 26px;
+  background-image: radial-gradient(circle, var(--team) 45%, transparent 50%);
+  background-size: 3px 7px;
+  background-repeat: repeat-y;
+}
+
+.team-score .pip {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+
+.final-scores {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 260px;
+}
+
+.final-scores li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 16px;
+  padding: 8px 14px;
+  background: var(--card);
+  border-left: 6px solid var(--team);
+  border-radius: 10px;
+}
+
+.final-scores b {
+  color: var(--team);
+  font-size: 17px;
+}
+
+.final-scores span {
+  font-size: 22px;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* The round counter, at the left of the team strip. */
+/* Sits directly on the strip — it labels the row rather than being one of the
+   things in it. */
+.round-badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 0 14px 0 6px;
+  align-self: center;
+  justify-content: center;
+}
+
+.round-badge em {
+  font-style: normal;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--muted);
+  line-height: 1;
+}
+
+.round-badge b {
+  font-size: 24px;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+.round-badge i {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* ---- Sand timer ---- */
+
+.timer {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.hourglass {
+  width: 64px;
+  height: 92px;
+  flex: none;
+}
+
+/* A real flip that stays flipped, the way you would turn the physical timer
+   over. The sand counter-rotates inside it — see Hourglass.tsx. */
+.hourglass {
+  transition: transform 0.65s cubic-bezier(0.5, -0.12, 0.3, 1.15);
+}
+
+.hourglass.flipped {
+  transform: rotate(180deg);
+}
+
+.hg-glass {
+  fill: #fff;
+}
+
+.hg-edge {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 2.2;
+  stroke-linejoin: round;
+}
+
+/* Amber rather than the logo's yellow: the panel behind is yellow, and sand
+   the same colour as its background is no sand at all. */
+.hg-sand {
+  fill: #d98d1e;
+}
+
+.hg-frame {
+  fill: var(--ink);
+}
+
+.timer b {
+  font-size: 42px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+/* Out of sand — a prompt to wrap up, not a hard stop. */
+.timer b.out {
+  color: var(--accent);
+}
+
+/* No measurement was possible, so there is no number to show. */
+.result-empty {
+  font-size: 52px;
+  font-weight: 700;
+  line-height: 1;
+  color: var(--muted);
+}
+
+/* Destructive, and only shown once a restart has been asked for. */
+button.danger {
+  background: var(--pink);
+  border-color: var(--pink);
+  color: #fff;
+}
+
+/* ---- Whose round it is, beside the card ---- */
+
+.roles {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 13px 15px;
+  /* Same window treatment as the teams in the top bar. */
+  background: var(--panel);
+  border: 3px solid #fff;
+  border-radius: 14px;
+}
+
+.roles-team {
+  font-size: 19px;
+  color: var(--team);
+  padding-bottom: 8px;
+  border-bottom: 3px dotted var(--team);
+}
+
+.role {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.role img {
+  width: 44px;
+  height: 44px;
+  object-fit: contain;
+  flex: none;
+}
+
+.role span {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.role b {
+  font-size: 18px;
+  color: var(--ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* The role is the point of the block, so it gets the heading colour. */
+.role em {
+  font-style: normal;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--pink);
+}
+
+/* ---- Moving between screens ---- */
+
+/*
+ * Both screens are mounted for the length of a switch, stacked in one grid cell
+ * so the container is as tall as the taller of them. Absolute positioning would
+ * take the outgoing one out of flow and collapse the page under it mid-slide.
+ */
+.slider {
+  position: relative;
+  /* Room for the panels' shadows. Nothing is clipped here any more — a screen
+     leaving is meant to carry on past the edge of the column and out of the
+     window, and clipping it at the column made it vanish a few percent in from
+     the edge instead. The window itself does the hiding. */
+  padding: 14px;
+  margin: -14px;
+}
+
+.slide {
+  min-width: 0;
+}
+
+/* The screen on its way out floats over the one arriving, so the container is
+   sized by the new screen alone rather than by whichever of the two is taller
+   — which made the page jump when the transition ended. */
+.slide[class*='leaving'] {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  right: 14px;
+}
+
+.slide[class*='leaving'] {
+  pointer-events: none;
+}
+
+/* The outgoing screen keeps its own copy of everything, including anything
+   pinned to a corner. */
+.slide[class*='leaving'] .back-arrow {
+  display: none;
+}
+
+/* Both halves share an easing and a distance, so they stay locked together and
+   the pair reads as one push rather than two things moving separately. */
+.entering-forward,
+.leaving-forward,
+.entering-back,
+.leaving-back {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.55, 0, 0.25, 1);
+  animation-fill-mode: both;
+}
+
+.entering-forward {
+  animation-name: slide-from-right;
+}
+
+.leaving-forward {
+  animation-name: slide-to-left;
+}
+
+.entering-back {
+  animation-name: slide-from-left;
+}
+
+.leaving-back {
+  animation-name: slide-to-right;
+}
+
+/* A whole width each, so one is always leaving as the other arrives and they
+   never overlap. The extra clears the padding the clip box is inset by. */
+@keyframes slide-from-right {
+  from {
+    transform: translateX(100vw);
+  }
+}
+
+@keyframes slide-to-left {
+  to {
+    transform: translateX(-100vw);
+  }
+}
+
+@keyframes slide-from-left {
+  from {
+    transform: translateX(-100vw);
+  }
+}
+
+@keyframes slide-to-right {
+  to {
+    transform: translateX(100vw);
+  }
+}
+
+/* Teams is not in that row. It hangs off the strip in the top bar, so it drops
+   down from behind it rather than arriving from a side. */
+/*
+ * The teams panel comes up over the screen it replaces rather than swapping
+ * with it.
+ *
+ * The screen underneath stays put and stays solid for the whole thing, which is
+ * what makes fading the new one in safe: there is always an opaque panel behind
+ * it, so the page backdrop never shows through and neither screen vanishes on
+ * its own. It also keeps the movement small — a panel travelling its own height
+ * is a lot of motion to start out of nothing, and it was starting out of
+ * nothing badly: a percentage transform resolves against the element's own box,
+ * and on the first frame after it is built that box is not settled, so the
+ * opening frame put it at some fraction of where it should have been and the
+ * rest of the animation had to catch up.
+ */
+.entering-expand {
+  animation: panel-open 220ms cubic-bezier(0.2, 0.85, 0.35, 1) both;
+  position: relative;
+  z-index: 1;
+  will-change: transform, opacity;
+}
+
+.leaving-expand {
+  animation: fade-away 240ms 200ms ease-out both;
+}
+
+.entering-collapse {
+  animation: fade-in 220ms ease-out both;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+/* Above the screen it is uncovering, which is already there and already solid
+   behind it the whole way out. */
+.leaving-collapse {
+  animation: panel-shut 220ms 180ms cubic-bezier(0.45, 0, 0.8, 0.5) both;
+  z-index: 2;
+  will-change: transform, opacity;
+}
+
+@keyframes panel-open {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -14px, 0);
+  }
+
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes panel-shut {
+  from {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+
+  to {
+    opacity: 0;
+    transform: translate3d(0, -12px, 0);
+  }
+}
+
+@keyframes fade-away {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+/*
+ * A redraw is a new card dealt onto the one it replaces. The card being covered
+ * stays on the table underneath until the new one has settled on it.
+ */
+.card-stack {
+  position: relative;
+  width: var(--card-w);
+  aspect-ratio: 63 / 88;
+  flex: none;
+}
+
+.card-stack > .shape-card {
+  max-width: none;
+}
+
+.shape-card.beneath {
+  position: absolute;
+  inset: 0;
+}
+
+/* ---- Taking a card off a pile, and putting it back ---- */
+
+/*
+ * The card turns over where it lands, not where it started. This layer floats
+ * over everything at fixed positions measured from the real boxes, so the card
+ * can travel from its square on the pile to its place on the stage while the
+ * stage fades up underneath it.
+ */
+.deal-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  pointer-events: none;
+}
+
+.pile-ghost,
+.pile-carry,
+.flight {
+  position: fixed;
+  border-radius: 11px;
+}
+
+/* The rest of the row, clearing out by whichever edge it is nearer. No fade:
+   they are cards leaving the table, not cards dissolving. */
+.pile-ghost {
+  animation: ghost-out-right 560ms cubic-bezier(0.55, 0, 0.85, 0.3) both;
+}
+
+.pile-ghost.exit-left {
+  animation-name: ghost-out-left;
+}
+
+.pile-ghost.coming {
+  animation: ghost-in-right 620ms cubic-bezier(0.2, 0.85, 0.3, 1) both;
+}
+
+.pile-ghost.coming.exit-left {
+  animation-name: ghost-in-left;
+}
+
+@keyframes ghost-out-left {
+  to {
+    transform: translateX(-75vw) rotate(-16deg);
+  }
+}
+
+@keyframes ghost-out-right {
+  to {
+    transform: translateX(75vw) rotate(16deg);
+  }
+}
+
+@keyframes ghost-in-left {
+  from {
+    transform: translateX(-75vw) rotate(-16deg);
+  }
+}
+
+@keyframes ghost-in-right {
+  from {
+    transform: translateX(75vw) rotate(16deg);
+  }
+}
+
+/* The chosen pile crossing to its place beside the card, under the card it
+   just dealt. */
+.pile-carry {
+  z-index: 1;
+}
+
+.carry-card {
+  position: absolute;
+  inset: 0;
+  border-radius: 11px;
+  transition: transform 620ms cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+/* The card itself, above the pile it came off. */
+.flight {
+  z-index: 2;
+  perspective: 1200px;
+}
+
+.flight-card {
+  position: absolute;
+  inset: 0;
+  -webkit-transform-style: preserve-3d;
+  transform-style: preserve-3d;
+  transition: transform 620ms cubic-bezier(0.45, 0, 0.2, 1);
+}
+
+/* While the card is in the air its resting place is held open but empty, and
+   the panel around it fades up so it has something to land into. The card being
+   covered by a redraw is spared: the new one has to land on something. */
+.stage.dealing .shape-card:not(.beneath),
+.stage.undealing .shape-card:not(.beneath),
+.stage.redealing .shape-card:not(.beneath) {
+  visibility: hidden;
+}
+
+.stage.dealing .stage-deck,
+.stage.undealing .stage-deck {
+  visibility: hidden;
+}
+
+.stage.dealing .stage-side,
+.stage.dealing .back-arrow {
+  animation: fade-up 420ms 140ms ease-out both;
+}
+
+.stage.undealing .stage-side,
+.stage.undealing .back-arrow {
+  animation: fade-away 240ms ease-in both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pile-ghost,
+  .carry-card,
+  .flight-card,
+  .stage .stage-side,
+  .stage .back-arrow {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* ---- The tab pill ---- */
+
+.nav-row {
+  display: flex;
+  gap: 6px;
+}
+
+/*
+ * The pill and the white labels are the same element, shown through a window
+ * cut to the pill's shape. Moving the window moves both together, and because
+ * it is a window rather than a colour swap, a label the pill is halfway across
+ * is white as far as the edge and ink after it — the change lands where the
+ * edge is, pixel by pixel, instead of the whole word flipping at once.
+ */
+.nav-lit {
+  position: absolute;
+  inset: 0;
+  padding: 5px;
+  background: var(--ink);
+  pointer-events: none;
+  transition:
+    clip-path 380ms cubic-bezier(0.5, 0, 0.2, 1),
+    opacity 220ms ease;
+}
+
+nav .nav-lit button,
+nav .nav-lit button.on {
+  color: #fff;
+  background: none;
+  border: none;
+  box-shadow: none;
+}
+
+.nav-lit .badge {
+  background: #fff;
+  color: var(--ink);
+}
+
+/* Teams is not a tab, so there is no tab for the pill to be under. */
+.nav-lit[data-away] {
+  opacity: 0;
+}
+
+/* The pill is the highlight now; the button underneath stays as it was. */
+nav button.on {
+  background: transparent;
+  color: var(--ink);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-lit {
+    transition: none;
+  }
+}
+
+/* Before the sand is turned there is no count to show, but the space it will
+   take is held anyway. */
+.timer b.waiting {
+  visibility: hidden;
+}
