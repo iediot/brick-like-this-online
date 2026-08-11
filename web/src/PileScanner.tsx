@@ -11,8 +11,11 @@ export function PileScanner({ onResult }: { onResult: (entries: InventoryEntry[]
   const [failure, setFailure] = useState<string | null>(null);
   const camera = useCamera();
 
+  // api.scanStatus answers "no scanner here" rather than failing, so this
+  // always settles. Leaving it unset on failure parked the button on
+  // "Checking scanner…" for good anywhere the app is served without one.
   useEffect(() => {
-    api.scanStatus().then(setStatus).catch(() => setStatus(null));
+    void api.scanStatus().then(setStatus);
   }, []);
 
   const open = async () => {

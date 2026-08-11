@@ -1,22 +1,20 @@
+/**
+ * The local server.
+ *
+ * It does two things: hand over the built web app, and put a pile of bricks in
+ * front of the vision model. It holds no game state at all — your pieces,
+ * teams and score live in your own browser, so two people can open the same
+ * address and play separate games, and the site itself is just files.
+ *
+ * That leaves scanning as the only reason this exists. It needs Ollama on the
+ * same machine, which is why the app degrades to typing pieces in by hand when
+ * it is served from anywhere else.
+ */
+
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { extname, join, normalize, resolve } from 'node:path';
-import { randomUUID } from 'node:crypto';
 
-import { summarize, PIECE_BY_ID, type InventoryEntry } from '../../shared/inventory.ts';
-import { generateCard, type PieceCount } from '../../shared/card.ts';
-import { MAX_PLAYERS, MAX_TEAMS, type Team } from '../../shared/teams.ts';
-import { TOTAL_ROUNDS, advance, type GameState } from '../../shared/game.ts';
-import {
-  listInventory,
-  replaceInventory,
-  recordRound,
-  listRounds,
-  listTeams,
-  replaceTeams,
-  readGame,
-  writeGame,
-} from './db.ts';
 import { ensureRunning, scanPile, status as scannerStatus } from './scanner.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
@@ -53,159 +51,15 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
   return JSON.parse(Buffer.concat(chunks).toString('utf8'));
 }
 
-/** Reject anything that is not a known catalogue piece rather than trusting the client. */
-function parseEntries(input: unknown): InventoryEntry[] {
-  if (!Array.isArray(input)) throw new Error('expected an array of entries');
-
-  const out: InventoryEntry[] = [];
-  for (const [i, raw] of input.entries()) {
-    const e = raw as Partial<InventoryEntry>;
-    const pieceId = String(e.pieceId ?? '');
-    if (!PIECE_BY_ID.has(pieceId)) throw new Error(`entry ${i}: unknown piece "${pieceId}"`);
-
-    const count = Number(e.count);
-    if (!Number.isFinite(count) || count < 0) throw new Error(`entry ${i}: bad count`);
-    if (count > 0) out.push({ pieceId, count: Math.min(999, Math.round(count)) });
-  }
-  return out;
-}
-
-/** Reject anything that is not a plausible team rather than trusting the client. */
-function parseTeams(input: unknown): Team[] {
-  if (!Array.isArray(input)) throw new Error('expected an array of teams');
-  if (input.length > MAX_TEAMS) throw new Error(`at most ${MAX_TEAMS} teams`);
-
-  return input.map((raw, i) => {
-    const t = raw as Partial<Team>;
-    const name = String(t.name ?? '').trim();
-    if (!name) throw new Error(`team ${i + 1}: needs a name`);
-
-    const players = (Array.isArray(t.players) ? t.players : [])
-      .map((p) => String(p).trim())
-      .filter(Boolean)
-      .slice(0, MAX_PLAYERS);
-    if (players.length < 2) throw new Error(`team ${i + 1}: needs at least two players`);
-
-    return {
-      id: String(t.id ?? randomUUID()),
-      name: name.slice(0, 40),
-      players,
-      roundsPlayed: Math.max(0, Math.round(Number(t.roundsPlayed ?? 0))),
-      score: Math.max(0, Math.round(Number(t.score ?? 0))),
-    };
-  });
-}
-
-function currentGame(): GameState {
-  const { round, activeTeam } = readGame();
-  const teams = listTeams();
-  return {
-    round: Math.min(round, TOTAL_ROUNDS),
-    // A team may have been removed since the turn was recorded.
-    activeTeam: teams.length > 0 ? activeTeam % teams.length : 0,
-    teams,
-    finished: round > TOTAL_ROUNDS,
-  };
-}
-
 async function handleApi(
   req: IncomingMessage,
   res: ServerResponse,
   url: URL,
 ): Promise<boolean> {
-  const route = `${req.method} ${url.pathname}`;
-
-  switch (route) {
+  switch (`${req.method} ${url.pathname}`) {
     case 'GET /api/health':
       json(res, 200, { ok: true });
       return true;
-
-    case 'GET /api/inventory': {
-      const entries = listInventory();
-      json(res, 200, { entries, summary: summarize(entries) });
-      return true;
-    }
-
-    case 'PUT /api/inventory': {
-      const body = (await readJson(req)) as { entries?: unknown };
-      const entries = parseEntries(body?.entries);
-      replaceInventory(entries);
-      json(res, 200, { entries, summary: summarize(entries) });
-      return true;
-    }
-
-    case 'POST /api/cards/draw': {
-      const body = ((await readJson(req)) ?? {}) as { count?: number; seed?: string };
-      const entries = listInventory();
-      if (entries.length === 0) {
-        json(res, 409, { error: 'Inventory is empty — add some bricks first.' });
-        return true;
-      }
-      const count =
-        body.count && body.count >= 5 && body.count <= 8
-          ? (body.count as PieceCount)
-          : undefined;
-      json(res, 200, generateCard(entries, { count, seed: body.seed }));
-      return true;
-    }
-
-    case 'GET /api/teams':
-      json(res, 200, { teams: listTeams() });
-      return true;
-
-    case 'PUT /api/teams': {
-      const body = (await readJson(req)) as { teams?: unknown };
-      const teams = parseTeams(body?.teams);
-      replaceTeams(teams);
-      // A roster is only ever saved at setup, so this is the start of a game.
-      // Inheriting the previous turn would have the wrong team up first.
-      writeGame(1, 0);
-      json(res, 200, { teams });
-      return true;
-    }
-
-    case 'GET /api/game':
-      json(res, 200, currentGame());
-      return true;
-
-    case 'POST /api/game/turn': {
-      const body = ((await readJson(req)) ?? {}) as { points?: number };
-      const game = currentGame();
-      if (game.teams.length === 0) {
-        json(res, 409, { error: 'No teams yet.' });
-        return true;
-      }
-
-      const points = Math.max(0, Math.round(Number(body.points ?? 0)));
-      const scored = {
-        ...game,
-        teams: game.teams.map((t, i) =>
-          i === game.activeTeam ? { ...t, score: t.score + points } : t,
-        ),
-      };
-
-      const next = advance(scored);
-      replaceTeams(next.teams);
-      writeGame(next.finished ? TOTAL_ROUNDS + 1 : next.round, next.activeTeam);
-      json(res, 200, currentGame());
-      return true;
-    }
-
-    case 'POST /api/game/restart': {
-      // Clears the roster as well as the score — a new game, not a rematch.
-      replaceTeams([]);
-      writeGame(1, 0);
-      json(res, 200, currentGame());
-      return true;
-    }
-
-    case 'POST /api/game/reset': {
-      const teams = listTeams().map((t) => ({ ...t, roundsPlayed: 0, score: 0 }));
-      replaceTeams(teams);
-      writeGame(1, 0);
-      json(res, 200, currentGame());
-      return true;
-    }
 
     case 'GET /api/scan/status':
       json(res, 200, await scannerStatus());
@@ -227,26 +81,6 @@ async function handleApi(
           fallback: 'You can still add bricks by hand.',
         });
       }
-      return true;
-    }
-
-    case 'GET /api/rounds':
-      json(res, 200, { rounds: listRounds() });
-      return true;
-
-    case 'POST /api/rounds': {
-      const b = (await readJson(req)) as Record<string, unknown>;
-      const record = {
-        id: randomUUID(),
-        cardId: String(b.cardId ?? ''),
-        brickCount: Number(b.brickCount ?? 0),
-        coverage: Number(b.coverage ?? 0),
-        overflow: Number(b.overflow ?? 0),
-        points: Number(b.points ?? 0),
-        playedAt: new Date().toISOString(),
-      };
-      recordRound(record);
-      json(res, 201, record);
       return true;
     }
   }

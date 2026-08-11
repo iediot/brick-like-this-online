@@ -67,6 +67,15 @@ export function HowToPlay() {
             the outline only.
           </li>
           <li>
+            Your pieces, teams and score are kept in this browser and go no further, so opening
+            the same address on another device starts its own game rather than joining this one.
+            Clearing the site&apos;s data clears the game with it.
+          </li>
+          <li>
+            Scanning a pile reads it with a vision model running on your own machine, so it only
+            works when you are running the app there. Everywhere else the pieces get typed in.
+          </li>
+          <li>
             Not built yet: challenge cards, and the split that keeps the Builder from seeing the
             card — for now one screen shows everything, so look away.
           </li>

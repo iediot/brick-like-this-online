@@ -138,11 +138,29 @@ Override with `SCAN_MODEL` or `OLLAMA_HOST`.
 | `shared/card.ts`    | Brick placement, outline tracing, card geometry         |
 | `shared/scoring.ts` | Mask comparison → points                                |
 | `shared/inventory.ts` | Shape classes and the capability summary              |
-| `server/`           | HTTP + SQLite + the scanner. Zero npm dependencies.     |
+| `shared/validate.ts` | Turning stored or typed input into game data, or refusing it |
+| `server/`           | Static files + the scanner. Zero npm dependencies.      |
+| `web/store.ts`      | The game, kept in the browser                           |
 | `web/`              | React app: inventory editor, scanner, camera, scoring   |
 
-The server has no npm dependencies — Node 26 ships SQLite (`node:sqlite`) and
-runs TypeScript natively, so `node server/src/index.ts` just works.
+The server has no npm dependencies — Node 26 runs TypeScript natively, so
+`node server/src/index.ts` just works.
+
+## Where the game is kept
+
+In your browser, under `localStorage`, and nowhere else. Pieces, teams, score
+and the play log all live on the device you are playing on, so two people
+opening the same address get two separate games instead of fighting over one.
+Clearing the site's data clears the game.
+
+Nothing is stored server-side, which leaves the server doing two jobs: handing
+over the built app, and putting a pile of bricks in front of the vision model.
+Only the second needs a machine — scanning talks to Ollama over `/api/scan`, so
+it works when you run the app yourself and the app falls back to typing pieces
+in by hand anywhere else.
+
+That also means the site is only files. `vercel.json` builds `web/dist` and it
+can go on any static host as-is.
 
 ## Not built yet
 
@@ -151,8 +169,6 @@ runs TypeScript natively, so `node server/src/index.ts` just works.
 - **The Instructor/Builder split.** Currently one person sees the card and
   builds it. The real game's whole engine is that the person describing cannot
   see what the person building is doing. Two devices, or one passed around.
-- **Rounds and a running score** — the real game is six rounds against a
-  30-second timer.
 - **A trained detector.** The vision model is the zero-training bootstrap; a
   YOLO fine-tuned on the eight coarse shape classes would be faster, run on
   CPU, and handle a whole pile in one frame.

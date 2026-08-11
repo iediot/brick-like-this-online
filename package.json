@@ -3,6 +3,9 @@
   "private": true,
   "type": "module",
   "workspaces": ["web", "server"],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "node --watch server/src/index.ts & npm --workspace web run dev",
     "dev:server": "npm --workspace server run dev",
