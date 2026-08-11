@@ -71,7 +71,8 @@ export function PileScanner({ onResult }: { onResult: (entries: InventoryEntry[]
   if (status && !ready) {
     return (
       <p className="muted scanner-off">
-        Scanner offline — add pieces by hand below. {status.detail ?? ''}
+        {/* This sits in the save bar, under the grid of steppers. */}
+        Scanner offline — add pieces by hand above. {status.detail ?? ''}
       </p>
     );
   }
