@@ -7,6 +7,10 @@ The twist over the physical game: the models are generated from **your**
 inventory rather than printed on 92 fixed cards, so every model is assembled
 from bricks you actually own.
 
+## Vercel Deployment
+
+URL: https://brick-like-this-online.vercel.app
+
 ## The game it's based on
 
 *Brick Like This!* (Dotted Games / LEGO, designed by Luca Bellini) is a
