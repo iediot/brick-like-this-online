@@ -1,6 +1,6 @@
 <div align="center">
     
-<img width="128" height="128" alt="Brick Like This — online" src="assets/logo.png" />
+<img width="256" height="256" alt="Brick Like This — online" src="assets/logo.png" />
 
 # Brick Like This — online
 
