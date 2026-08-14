@@ -1,6 +1,6 @@
 <div align="center">
-
-<img width="128" height="128" alt="logo-2" src="https://github.com/user-attachments/assets/86287736-a0e5-4e3b-9750-9228d6d53fc1" />
+    
+<img width="128" height="128" alt="logo-3" src="https://github.com/user-attachments/assets/20483efd-1c7c-4a8a-99fc-596dc7f1a369" />
 
 # Brick Like This — online
 
