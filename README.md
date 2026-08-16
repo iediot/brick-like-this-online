@@ -1,6 +1,6 @@
 <div align="center">
     
-<img width="128" height="128" alt="Brick Like This — online" src="assets/logo.png" />
+<img width="256" height="256" alt="Brick Like This — online" src="assets/logo.png" />
 
 # Brick Like This — online
 
@@ -127,8 +127,6 @@ For development, two processes with hot reload:
     npm run dev:web        # :5173, proxies /api to the server
 
 The camera needs HTTPS or localhost.
-
-**Live deployment:** [brick-like-this-online.vercel.app](https://brick-like-this-online.vercel.app)
 
 ## Where the game is kept
 
