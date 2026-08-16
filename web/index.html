@@ -4,19 +4,24 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
-    <title>Brick Like This — online</title>
+    <title>Brick Like This Online</title>
     <meta
       name="description"
       content="A digital take on the LEGO party game, where the models are built from your own bricks."
     />
 
-    <link rel="icon" type="image/png" href="/favicon.png" />
+    <!-- Browsers ask for /favicon.ico at the root whatever the HTML says, and
+         fall back to it for bookmarks and history, so leaving it out showed a
+         blank icon in those places no matter what was linked here. It holds
+         16, 32 and 48 so each context picks its own rather than downscaling
+         one image badly. -->
+    <link rel="icon" href="/favicon.ico" sizes="32x32" />
+    <link rel="icon" type="image/png" href="/favicon.png" sizes="256x256" />
     <!-- Added to a phone's home screen this is the icon, and iOS flattens any
          transparency onto black — so this one is pre-flattened onto the site's
          own background rather than left cut out. -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <!-- The full title is too long to sit under an icon; iOS truncates it. -->
-    <meta name="apple-mobile-web-app-title" content="Brick Like This" />
+    <meta name="apple-mobile-web-app-title" content="Brick Like This Online" />
     <meta name="theme-color" content="#47a89f" />
   </head>
   <body>
