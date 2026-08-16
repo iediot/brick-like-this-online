@@ -2,7 +2,7 @@
     
 <img width="256" height="256" alt="Brick Like This — online" src="assets/logo.png" />
 
-# Brick Like This — online
+# Brick Like This Online
 
 **A digital take on the LEGO party game, where the models are built from your own bricks**
 
