@@ -128,8 +128,6 @@ For development, two processes with hot reload:
 
 The camera needs HTTPS or localhost.
 
-**Live deployment:** [brick-like-this-online.vercel.app](https://brick-like-this-online.vercel.app)
-
 ## Where the game is kept
 
 In your browser, under `localStorage`, and nowhere else. Pieces, teams, score and the play log
