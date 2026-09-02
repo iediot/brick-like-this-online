@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { asset } from './asset.ts';
 import { api, type InventoryState } from './api.ts';
 import { Inventory } from './Inventory.tsx';
 import { Play } from './Play.tsx';
@@ -161,7 +162,7 @@ export default function App() {
           centred content column. */}
       <header className="topbar">
         <h1 className="brand">
-          <img src="/logo.png" alt="Brick Like This! Online" />
+          <img src={asset('/logo.png')} alt="Brick Like This! Online" />
         </h1>
         {/* Teams live in the bar rather than on a screen of their own: they
             are standing context for every round, not somewhere you go. */}
@@ -201,7 +202,7 @@ export default function App() {
                     const role = roleOf(team, slot);
                     return (
                       <em key={player} className="player">
-                        <img src={ROLE_ICONS[role]} alt={ROLE_LABELS[role]} title={ROLE_LABELS[role]} />
+                        <img src={asset(ROLE_ICONS[role])} alt={ROLE_LABELS[role]} title={ROLE_LABELS[role]} />
                         <span>{player}</span>
                       </em>
                     );

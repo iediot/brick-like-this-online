@@ -4,6 +4,7 @@ import { PIECE_COUNTS, type PieceCount, type Card } from '@shared/card.ts';
 import { scoreMasks, type RoundScore } from '@shared/scoring.ts';
 import { ROLE_ICONS, ROLE_LABELS, colourFor, roleOf } from '@shared/teams.ts';
 import { winners, type GameState } from '@shared/game.ts';
+import { asset } from './asset.ts';
 import { api } from './api.ts';
 import { CountCard, DeckStack, ModelFigure } from './CardFace.tsx';
 import { useCamera } from './useCamera.ts';
@@ -458,7 +459,7 @@ export function Play({
                       const role = roleOf(active, seat);
                       return (
                         <div key={player} className={`role role-${role}`}>
-                          <img src={ROLE_ICONS[role]} alt="" />
+                          <img src={asset(ROLE_ICONS[role])} alt="" />
                           <span>
                             <b>{player}</b>
                             <em>{ROLE_LABELS[role]}</em>

@@ -19,6 +19,10 @@ import { ensureRunning, scanPile, status as scannerStatus } from './scanner.ts';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const WEB_DIST = resolve(import.meta.dirname, '../../web/dist');
+/* The build nests its output so the folder layout matches the URL the app is
+   served from. Everything under WEB_DIST is still served by path, so only the
+   fallback has to know where the app's own index actually sits. */
+const APP_INDEX = join(WEB_DIST, 'brick-like-this-online', 'index.html');
 
 const MIME: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -95,7 +99,7 @@ async function serveStatic(url: URL, res: ServerResponse): Promise<void> {
   // and fails the prefix check below rather than escaping it.
   const candidate = resolve(join(WEB_DIST, normalize(requested)));
 
-  const target = candidate.startsWith(WEB_DIST) ? candidate : join(WEB_DIST, 'index.html');
+  const target = candidate.startsWith(WEB_DIST) ? candidate : APP_INDEX;
 
   try {
     const body = await readFile(target);
@@ -103,7 +107,7 @@ async function serveStatic(url: URL, res: ServerResponse): Promise<void> {
     res.end(body);
   } catch {
     try {
-      const fallback = await readFile(join(WEB_DIST, 'index.html'));
+      const fallback = await readFile(APP_INDEX);
       res.writeHead(200, { 'content-type': MIME['.html'] });
       res.end(fallback);
     } catch {

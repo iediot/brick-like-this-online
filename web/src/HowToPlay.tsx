@@ -1,3 +1,5 @@
+import { asset } from './asset.ts';
+
 /**
  * The official rulebook as images, plus what this version does differently.
  *
@@ -19,7 +21,7 @@ export function HowToPlay() {
     <div className="panel rules">
       <div className="rules-head">
         <h3>Official rules</h3>
-        <a className="pdf-link" href="/rules.pdf" target="_blank" rel="noreferrer">
+        <a className="pdf-link" href={asset('/rules.pdf')} target="_blank" rel="noreferrer">
           Open the PDF
         </a>
       </div>
@@ -27,8 +29,8 @@ export function HowToPlay() {
       <div className="rulebook">
         {SPREADS.map((spread) => (
           // Opens full size, because the spreads are wide and the print is small.
-          <a key={spread.src} href={spread.src} target="_blank" rel="noreferrer">
-            <img className="rules-page" src={spread.src} alt={spread.label} />
+          <a key={spread.src} href={asset(spread.src)} target="_blank" rel="noreferrer">
+            <img className="rules-page" src={asset(spread.src)} alt={spread.label} />
           </a>
         ))}
       </div>
