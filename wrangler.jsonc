@@ -11,5 +11,13 @@
   "compatibility_date": "2026-09-02",
   "assets": {
     "directory": "./web/dist"
-  }
+  },
+  // Binding the domain here rather than clicking it into the dashboard is what
+  // creates its DNS record — a freshly registered domain on Cloudflare's
+  // nameservers still resolves to nothing until something claims it. Deploying
+  // is then the only step that has to happen for the address to work.
+  "routes": [
+    { "pattern": "iediot.com", "custom_domain": true },
+    { "pattern": "www.iediot.com", "custom_domain": true }
+  ]
 }
