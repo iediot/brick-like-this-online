@@ -15,12 +15,17 @@
          blank icon in those places no matter what was linked here. It holds
          16, 32 and 48 so each context picks its own rather than downscaling
          one image badly. -->
-    <link rel="icon" href="/favicon.ico" sizes="32x32" />
-    <link rel="icon" type="image/png" href="/favicon.png" sizes="256x256" />
+    <!-- The ?v= is a cache-buster, and it is here because Safari's favicon
+         store sits outside per-site website data and is shared with private
+         browsing: once it has an icon for a URL, nothing short of clearing the
+         whole history dislodges it. Keying on a new URL sidesteps that. Bump
+         the number whenever an icon changes. -->
+    <link rel="icon" href="/favicon.ico?v=2" sizes="16x16 32x32 48x48" />
+    <link rel="icon" type="image/png" href="/favicon.png?v=2" sizes="256x256" />
     <!-- Added to a phone's home screen this is the icon, and iOS flattens any
          transparency onto black — so this one is pre-flattened onto the site's
          own background rather than left cut out. -->
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png?v=2" />
     <meta name="apple-mobile-web-app-title" content="Brick Like This Online" />
     <meta name="theme-color" content="#47a89f" />
   </head>

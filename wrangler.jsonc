@@ -1,0 +1,15 @@
+{
+  // Without this, `wrangler deploy` at the repo root has to guess what to
+  // deploy, sees an npm workspace holding both `web` and `server`, and stops
+  // rather than picking one. Naming the output directly settles it.
+  //
+  // There is no Worker script here on purpose: the game runs entirely in the
+  // browser and keeps its state there, so this deploys as static assets only.
+  // The server in `server/` is for running the pile scanner locally against
+  // Ollama and has no part in a hosted copy.
+  "name": "brick-like-this-online",
+  "compatibility_date": "2026-09-02",
+  "assets": {
+    "directory": "./web/dist"
+  }
+}
